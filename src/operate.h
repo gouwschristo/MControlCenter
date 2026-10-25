@@ -20,7 +20,9 @@
 #define OPERATE_H
 
 
+#include <optional>
 #include <string>
+#include <QStringList>
 #include <QVector>
 
 enum class charging_state {
@@ -44,6 +46,7 @@ enum class user_mode {
     balanced_mode,
     silent_mode,
     super_battery_mode,
+    custom_mode,
     unknown_mode
 };
 
@@ -74,6 +77,9 @@ public:
     [[nodiscard]] std::optional<int> getGpuTemp() const;
     [[nodiscard]] int getFan1Speed() const;
     [[nodiscard]] std::optional<int> getFan2Speed() const;
+    [[nodiscard]] int getFan1Duty() const;
+    [[nodiscard]] std::optional<int> getFan2Duty() const;
+    [[nodiscard]] bool getFanCurveActive() const;
     [[nodiscard]] QVector<int> getFan1SpeedSettings() const;
     [[nodiscard]] QVector<int> getFan2SpeedSettings() const;
     [[nodiscard]] QVector<int> getFan1TempSettings() const;
@@ -86,28 +92,39 @@ public:
     [[nodiscard]] bool getQc3State() const;
     [[nodiscard]] bool getPanelState() const;
     [[nodiscard]] bool getWebCamState() const;
+    [[nodiscard]] bool getWebCamBlockState() const;
     [[nodiscard]] bool getFnSuperSwapState() const;
     [[nodiscard]] bool getCoolerBoostState() const;
     [[nodiscard]] user_mode getUserMode() const;
     [[nodiscard]] fan_mode getFanMode() const;
+    [[nodiscard]] QString getShiftModeName() const;
+    [[nodiscard]] QString getFanModeName() const;
+    [[nodiscard]] QStringList getAvailableShiftModeNames() const;
+    [[nodiscard]] QStringList getAvailableFanModeNames() const;
+    [[nodiscard]] QString getDriverName() const;
+    [[nodiscard]] int getBatteryStartThreshold() const;
 
-    void setBatteryThreshold(int value) const;
-    void setKeyboardBacklightMode(int value) const;
-    void setKeyboardBacklightEnabled(bool enabled) const;
-    void setKeyboardBrightness(int value) const;
-    void setUsbPowerShareState(const QString &state) const;
-    void setQc3State(bool enabled) const;
-    void setPanelState(bool enabled) const;
-    void setWebCamState(bool enabled) const;
-    void setFnSuperSwapState(bool enabled) const;
-    void setCoolerBoostState(bool enabled) const;
-    void setUserMode(user_mode userMode) const;
-    void setFan1SpeedSettings(QVector<int> value) const;
-    void setFan2SpeedSettings(QVector<int> value) const;
-    void setFan1TempSettings(QVector<int> value) const;
-    void setFan2TempSettings(QVector<int> value) const;
-    void setFanMode(int value) const;
-    void setFanModeAdvanced(bool enabled) const;
+    bool setBatteryThreshold(int value) const;
+    bool setKeyboardBacklightMode(int value) const;
+    bool setKeyboardBacklightEnabled(bool enabled) const;
+    bool setKeyboardBrightness(int value) const;
+    bool setUsbPowerShareState(const QString &state) const;
+    bool setQc3State(bool enabled) const;
+    bool setPanelState(bool enabled) const;
+    bool setWebCamState(bool enabled) const;
+    bool setWebCamBlockState(bool enabled) const;
+    bool setFnSuperSwapState(bool enabled) const;
+    bool setCoolerBoostState(bool enabled) const;
+    bool setUserMode(user_mode userMode) const;
+    bool setFan1SpeedSettings(QVector<int> value) const;
+    bool setFan2SpeedSettings(QVector<int> value) const;
+    bool setFan1TempSettings(QVector<int> value) const;
+    bool setFan2TempSettings(QVector<int> value) const;
+    bool setFanMode(int value) const;
+    bool setFanModeAdvanced(bool enabled) const;
+    bool setFanModeByName(const QString &name) const;
+    bool setShiftModeByName(const QString &name) const;
+    bool setFanCurveActive(bool active) const;
 
     [[nodiscard]] int getValue(int address) const;
     void setValue(int address, int value) const;
@@ -120,6 +137,7 @@ public:
     [[nodiscard]] bool isQc3Support() const;
     [[nodiscard]] bool isPanelSupport() const;
     [[nodiscard]] bool isWebCamOffSupport() const;
+    [[nodiscard]] bool isWebCamBlockSupport() const;
 
     void loadSettings() const;
     void handleWakeEvent() const;

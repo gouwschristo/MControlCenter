@@ -388,29 +388,40 @@
              </widget>
             </item>
             <item>
+             <widget class="QCheckBox" name="webcamBlockCheckBox">
+              <property name="toolTip">
+               <string>Block the webcam at the firmware level</string>
+              </property>
+              <property name="text">
+               <string>Block WebCam</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_2">
               <item>
                <widget class="QLabel" name="label_19">
-                <property name="enabled">
-                 <bool>true</bool>
-                </property>
                 <property name="text">
-                 <string>Current fan Mode:</string>
+                 <string>Fan mode:</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QLabel" name="fanModeValueLabel">
-                <property name="enabled">
-                 <bool>true</bool>
-                </property>
+               <widget class="QComboBox" name="fanModeComboBox"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <item>
+               <widget class="QLabel" name="label_20">
                 <property name="text">
-                 <string notr="true">-</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignmentFlag::AlignJustify|Qt::AlignmentFlag::AlignVCenter</set>
+                 <string>Shift mode:</string>
                 </property>
                </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="shiftModeComboBox"/>
               </item>
              </layout>
             </item>
@@ -571,7 +582,30 @@
            <item row="5" column="1">
             <widget class="QLabel" name="label_18">
              <property name="text">
-              <string>Limits performance and turns off fans at lower temperatures</string>
+              <string>Limits CPU/GPU clocks and voltage (eco shift mode)</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignCenter</set>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0">
+            <widget class="QRadioButton" name="customModeRadioButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Custom</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QLabel" name="label_custom">
+             <property name="text">
+              <string>EC settings changed outside the app</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -966,7 +1000,7 @@
             <item row="0" column="0">
              <widget class="QCheckBox" name="advancedFanControlCheckBox">
               <property name="text">
-               <string>Enable advanced fan control</string>
+               <string>Enable user fan curve</string>
               </property>
              </widget>
             </item>
@@ -1761,7 +1795,7 @@
                  <bool>false</bool>
                 </property>
                 <property name="text">
-                 <string>Reset</string>
+                 <string>Defaults</string>
                 </property>
                </widget>
               </item>
@@ -1823,6 +1857,9 @@
         </item>
         <item row="2" column="0" colspan="2">
          <widget class="QSlider" name="keyboardBrightnessSlider">
+          <property name="toolTip">
+           <string>0 = minimum brightness while the keyboard is on; use the On checkbox to turn the backlight off</string>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
             <horstretch>0</horstretch>

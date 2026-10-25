@@ -44,8 +44,8 @@ bool MsiEcHelper::getWebcam() const {
     return getValue<bool>("getWebcam", false);
 }
 
-void MsiEcHelper::setWebcam(bool enabled) const {
-    setValue<bool>("setWebcam", enabled);
+bool MsiEcHelper::setWebcam(bool enabled) const {
+    return setValue<bool>("setWebcam", enabled);
 }
 
 //////////////// webcam_block ////////////////
@@ -58,8 +58,8 @@ bool MsiEcHelper::getWebcamBlock() const {
     return getValue<bool>("getWebcamBlock", false);
 }
 
-void MsiEcHelper::setWebcamBlock(bool enabled) const {
-    setValue<bool>("setWebcamBlock", enabled);
+bool MsiEcHelper::setWebcamBlock(bool enabled) const {
+    return setValue<bool>("setWebcamBlock", enabled);
 }
 
 //////////////// fn_win_swap ////////////////
@@ -72,8 +72,8 @@ bool MsiEcHelper::getFnWinSwap() const {
     return getValue<bool>("getFnWinSwap", false);
 }
 
-void MsiEcHelper::setFnWinSwap(bool swap) const {
-    setValue<bool>("setFnWinSwap", swap);
+bool MsiEcHelper::setFnWinSwap(bool swap) const {
+    return setValue<bool>("setFnWinSwap", swap);
 }
 
 //////////////// cooler_boost ////////////////
@@ -86,8 +86,8 @@ bool MsiEcHelper::getCoolerBoost() const {
     return getValue<bool>("getCoolerBoost", false);
 }
 
-void MsiEcHelper::setCoolerBoost(bool enable) const {
-    setValue<bool>("setCoolerBoost", enable);
+bool MsiEcHelper::setCoolerBoost(bool enable) const {
+    return setValue<bool>("setCoolerBoost", enable);
 }
 
 //////////////// shift_mode ////////////////
@@ -111,6 +111,10 @@ QList<shift_mode> MsiEcHelper::getAvailableShiftModes() const {
     return shiftModes;
 }
 
+QString MsiEcHelper::getAvailableShiftModesString() const {
+    return getValue<QString>("getAvailableShiftModes", "");
+}
+
 shift_mode MsiEcHelper::getShiftMode() const {
     QString mode = getValue<QString>("getShiftMode", "");
     if(mode == "eco")
@@ -125,7 +129,11 @@ shift_mode MsiEcHelper::getShiftMode() const {
         return shift_mode::unknown_mode;
 }
 
-void MsiEcHelper::setShiftMode(shift_mode mode) const {
+QString MsiEcHelper::getShiftModeName() const {
+    return getValue<QString>("getShiftMode", "");
+}
+
+bool MsiEcHelper::setShiftMode(shift_mode mode) const {
     QString modeStr;
     switch(mode) {
         case shift_mode::eco_mode:
@@ -141,9 +149,13 @@ void MsiEcHelper::setShiftMode(shift_mode mode) const {
             modeStr = "turbo";
             break;
         case shift_mode::unknown_mode:
-            return;
+            return false;
         }
-    setValue<QString>("setShiftMode", modeStr);
+    return setValue<QString>("setShiftMode", modeStr);
+}
+
+bool MsiEcHelper::setShiftModeName(QString mode) const {
+    return setValue<QString>("setShiftMode", mode);
 }
 
 //////////////// super_battery ////////////////
@@ -156,8 +168,8 @@ bool MsiEcHelper::getSuperBattery() const {
     return getValue<bool>("getSuperBattery", false);
 }
 
-void MsiEcHelper::setSuperBattery(bool enable) const {
-    setValue<bool>("setSuperBattery", enable);
+bool MsiEcHelper::setSuperBattery(bool enable) const {
+    return setValue<bool>("setSuperBattery", enable);
 }
 
 //////////////// fan_mode ////////////////
@@ -182,6 +194,10 @@ QList<fan_mode> MsiEcHelper::getAvailableFanModes() const {
     return fanModes;
 }
 
+QString MsiEcHelper::getAvailableFanModesString() const {
+    return getValue<QString>("getAvailableFanModes", "");
+}
+
 fan_mode MsiEcHelper::getFanMode() const {
     QString mode = getValue<QString>("getFanMode", "");
     if (mode == "auto")
@@ -196,7 +212,11 @@ fan_mode MsiEcHelper::getFanMode() const {
         return fan_mode::unknown_fan_mode;
 }
 
-void MsiEcHelper::setFanMode(fan_mode mode) const {
+QString MsiEcHelper::getFanModeName() const {
+    return getValue<QString>("getFanMode", "");
+}
+
+bool MsiEcHelper::setFanMode(fan_mode mode) const {
     QString modeStr;
     switch (mode) {
         case fan_mode::auto_fan_mode:
@@ -212,9 +232,13 @@ void MsiEcHelper::setFanMode(fan_mode mode) const {
             modeStr = "advanced";
             break;
         default:
-            return;
+            return false;
     }
-    setValue<QString>("setFanMode", modeStr);
+    return setValue<QString>("setFanMode", modeStr);
+}
+
+bool MsiEcHelper::setFanModeName(QString mode) const {
+    return setValue<QString>("setFanMode", mode);
 }
 
 //////////////// fw_version ////////////////
@@ -258,8 +282,8 @@ int MsiEcHelper::getCPUBasicFanSpeed() const {
     return getValue<int>("getCPUBasicFanSpeed", -1);
 }
 
-void MsiEcHelper::setCPUBasicFanSpeed(int value) const {
-    setValue<int>("setCPUBasicFanSpeed", value);
+bool MsiEcHelper::setCPUBasicFanSpeed(int value) const {
+    return setValue<int>("setCPUBasicFanSpeed", value);
 }
 
 //////////////// GPU ////////////////
@@ -293,7 +317,7 @@ int MsiEcHelper::getBatteryStartThreshold() const {
     return getValue<int>("getBatteryStartThreshold", -1);
 }
 
-void MsiEcHelper::setBatteryStartThreshold(int value) const {
+bool MsiEcHelper::setBatteryStartThreshold(int value) const {
     return setValue<int>("setBatteryStartThreshold", value);
 }
 
@@ -306,7 +330,7 @@ int MsiEcHelper::getBatteryEndThreshold() const {
     return getValue<int>("getBatteryEndThreshold", -1);
 }
 
-void MsiEcHelper::setBatteryEndThreshold(int value) const {
+bool MsiEcHelper::setBatteryEndThreshold(int value) const {
     return setValue<int>("setBatteryEndThreshold", value);
 }
 
@@ -339,7 +363,7 @@ int MsiEcHelper::getKeyboardBacklightBrightness() const {
     return getValue<int>("getKeyboardBacklightBrightness", -1);
 }
 
-void MsiEcHelper::setKeyboardBacklightBrightness(int value) const {
+bool MsiEcHelper::setKeyboardBacklightBrightness(int value) const {
     return setValue<int>("setKeyboardBacklightBrightness", value);
 }
 
@@ -353,8 +377,8 @@ bool MsiEcHelper::getKeyboardBacklightEnable() const {
     return getValue<bool>("getKeyboardBacklightEnable", false);
 }
 
-void MsiEcHelper::setKeyboardBacklightEnable(bool enable) const {
-    setValue<bool>("setKeyboardBacklightEnable", enable);
+bool MsiEcHelper::setKeyboardBacklightEnable(bool enable) const {
+    return setValue<bool>("setKeyboardBacklightEnable", enable);
 }
 
 bool MsiEcHelper::hasKeyboardBacklightMode() const {
@@ -365,8 +389,8 @@ std::optional<int> MsiEcHelper::getKeyboardBacklightMode() const {
     return getOptionalValue<int>("getKeyboardBacklightMode");
 }
 
-void MsiEcHelper::setKeyboardBacklightMode(int mode) const {
-    setValue<int>("setKeyboardBacklightMode", mode);
+bool MsiEcHelper::setKeyboardBacklightMode(int mode) const {
+    return setValue<int>("setKeyboardBacklightMode", mode);
 }
 
 //////////////// Fan curves (ng) ////////////////
@@ -379,24 +403,48 @@ QString MsiEcHelper::getCPUFanCurve() const {
     return getValue<QString>("getCPUFanCurve", "");
 }
 
-void MsiEcHelper::setCPUFanCurve(QString curve) const {
-    setValue<QString>("setCPUFanCurve", curve);
+bool MsiEcHelper::setCPUFanCurve(QString curve) const {
+    return setValue<QString>("setCPUFanCurve", curve);
 }
 
 QString MsiEcHelper::getGPUFanCurve() const {
     return getValue<QString>("getGPUFanCurve", "");
 }
 
-void MsiEcHelper::setGPUFanCurve(QString curve) const {
-    setValue<QString>("setGPUFanCurve", curve);
+bool MsiEcHelper::setGPUFanCurve(QString curve) const {
+    return setValue<QString>("setGPUFanCurve", curve);
 }
 
 bool MsiEcHelper::getFanCurveActive() const {
     return getValue<bool>("getFanCurveActive", false);
 }
 
-void MsiEcHelper::setFanCurveActive(bool active) const {
-    setValue<bool>("setFanCurveActive", active);
+bool MsiEcHelper::setFanCurveActive(bool active) const {
+    return setValue<bool>("setFanCurveActive", active);
+}
+
+bool MsiEcHelper::hasFanCurveIdle() const {
+    return getValue<bool>("hasFanCurveIdle", false);
+}
+
+int MsiEcHelper::getCPUFanCurveIdle() const {
+    return getValue<int>("getCPUFanCurveIdle", -1);
+}
+
+bool MsiEcHelper::setCPUFanCurveIdle(int value) const {
+    return setValue<int>("setCPUFanCurveIdle", value);
+}
+
+int MsiEcHelper::getGPUFanCurveIdle() const {
+    return getValue<int>("getGPUFanCurveIdle", -1);
+}
+
+bool MsiEcHelper::setGPUFanCurveIdle(int value) const {
+    return setValue<int>("setGPUFanCurveIdle", value);
+}
+
+QString MsiEcHelper::getMsiEcPath() const {
+    return getValue<QString>("getMsiEcPath", "");
 }
 
 //////////////// Fan RPM (ng) ////////////////
@@ -423,8 +471,8 @@ QString MsiEcHelper::getUsbPowerShare() const {
     return getValue<QString>("getUsbPowerShare", "");
 }
 
-void MsiEcHelper::setUsbPowerShare(QString state) const {
-    setValue<QString>("setUsbPowerShare", state);
+bool MsiEcHelper::setUsbPowerShare(QString state) const {
+    return setValue<QString>("setUsbPowerShare", state);
 }
 
 //////////////// QC3 (ng) ////////////////
@@ -437,8 +485,8 @@ bool MsiEcHelper::getQc3() const {
     return getValue<bool>("getQc3", false);
 }
 
-void MsiEcHelper::setQc3(bool enable) const {
-    setValue<bool>("setQc3", enable);
+bool MsiEcHelper::setQc3(bool enable) const {
+    return setValue<bool>("setQc3", enable);
 }
 
 //////////////// Panel / OD (ng) ////////////////
@@ -451,8 +499,8 @@ bool MsiEcHelper::getPanel() const {
     return getValue<bool>("getPanel", false);
 }
 
-void MsiEcHelper::setPanel(bool enable) const {
-    setValue<bool>("setPanel", enable);
+bool MsiEcHelper::setPanel(bool enable) const {
+    return setValue<bool>("setPanel", enable);
 }
 
 ////////////////////////////////
@@ -476,7 +524,9 @@ inline T MsiEcHelper::getValue(QString method, T defaultValue) const {
 }
 
 template <typename T>
-void MsiEcHelper::setValue(QString method, T value) const {
-    iface->call(method, value);
+bool MsiEcHelper::setValue(QString method, T value) const {
+    if (QDBusReply<bool> reply = iface->call(method, value); reply.isValid())
+        return reply.value();
     printError(iface->lastError());
+    return false;
 }

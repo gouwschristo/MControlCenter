@@ -26,6 +26,8 @@ MsiEcHelper msiEcHelper;
 
 const int cpuTempAddress = 0x68;
 const int gpuTempAddress = 0x80;
+const int cpuFanAddress = 0x71;
+const int gpuFanAddress = 0x89;
 const int batteryChargeAddress = 0x42;
 int batteryThresholdAddress;
 const int batteryThresholdAddress_0xEF = 0xEF;
@@ -66,12 +68,20 @@ const int fanTempSettingsCount = fanSpeedSettingsCount - 1;
 int fanModeAddress;
 const int fanModeAddress_0xD4 = 0xD4;
 const int fanModeAddress_0xF4 = 0xF4;
+const int shiftModeAddress = 0xF2;
 const int fanModeAuto = 0x0D;
 const int fanModeSilent = 0x1D;
 const int fanModeBasic = 0x4D;
 const int fanModeAdvanced = 0x8D;
 
 const QString settingsGroup = "Settings/";
+
+static QString curveToString(const QVector<int> &points) {
+    QStringList out;
+    for (int value : points)
+        out << QString::number(value);
+    return out.join(",");
+}
 
 Operate::Operate() = default;
 
@@ -197,35 +207,92 @@ std::optional<int> Operate::getFan2Speed() const {
     return value;
 }
 
+int Operate::getFan1Duty() const {
+    if (msiEcHelper.hasCPURealtimeFanSpeed())
+        return msiEcHelper.getCPURealtimeFanSpeed();
+    return helper.getValue(cpuFanAddress);
+}
+
+std::optional<int> Operate::getFan2Duty() const {
+    if (msiEcHelper.hasGPURealtimeFanSpeed())
+        return msiEcHelper.getGPURealtimeFanSpeed();
+    auto value = helper.getOptionalValue(gpuFanAddress);
+    return value ? std::optional<int>(value.value()) : std::nullopt;
+}
+
+bool Operate::getFanCurveActive() const {
+    if (msiEcHelper.hasFanCurve())
+        return msiEcHelper.getFanCurveActive();
+    return getFanMode() == fan_mode::advanced_fan_mode;
+}
+
 QVector<int> Operate::getFan1SpeedSettings() const {
     QVector<int> a;
-    for (int i = 0; i < fanSpeedSettingsCount; i++) {
-        a.push_back(helper.getValue(fan1SpeedSettingStartAddress + i));
+    if (msiEcHelper.hasFanCurve()) {
+        a.push_back(msiEcHelper.getCPUFanCurveIdle());
+        const QStringList parts = msiEcHelper.getCPUFanCurve().split(':');
+        if (parts.size() == 2) {
+            for (const QString &s : parts[1].split(','))
+                a.push_back(s.toInt());
+        }
+        if (a.size() == fanSpeedSettingsCount)
+            return a;
+        a.clear();
     }
+    for (int i = 0; i < fanSpeedSettingsCount; i++)
+        a.push_back(helper.getValue(fan1SpeedSettingStartAddress + i));
     return a;
 }
 
 QVector<int> Operate::getFan2SpeedSettings() const {
     QVector<int> a;
-    for (int i = 0; i < fanSpeedSettingsCount; i++) {
-        a.push_back(helper.getValue(fan2SpeedSettingStartAddress + i));
+    if (msiEcHelper.hasFanCurve()) {
+        a.push_back(msiEcHelper.getGPUFanCurveIdle());
+        const QStringList parts = msiEcHelper.getGPUFanCurve().split(':');
+        if (parts.size() == 2) {
+            for (const QString &s : parts[1].split(','))
+                a.push_back(s.toInt());
+        }
+        if (a.size() == fanSpeedSettingsCount)
+            return a;
+        a.clear();
     }
+    for (int i = 0; i < fanSpeedSettingsCount; i++)
+        a.push_back(helper.getValue(fan2SpeedSettingStartAddress + i));
     return a;
 }
 
 QVector<int> Operate::getFan1TempSettings() const {
     QVector<int> a;
-    for (int i = 0; i < fanTempSettingsCount; i++) {
-        a.push_back(helper.getValue(fan1TempSettingStartAddress + i));
+    if (msiEcHelper.hasFanCurve()) {
+        const QStringList parts = msiEcHelper.getCPUFanCurve().split(':');
+        if (parts.size() == 2) {
+            for (const QString &s : parts[0].split(','))
+                a.push_back(s.toInt());
+        }
+        if (a.size() == fanTempSettingsCount)
+            return a;
+        a.clear();
     }
+    for (int i = 0; i < fanTempSettingsCount; i++)
+        a.push_back(helper.getValue(fan1TempSettingStartAddress + i));
     return a;
 }
 
 QVector<int> Operate::getFan2TempSettings() const {
     QVector<int> a;
-    for (int i = 0; i < fanTempSettingsCount; i++) {
-        a.push_back(helper.getValue(fan2TempSettingStartAddress + i));
+    if (msiEcHelper.hasFanCurve()) {
+        const QStringList parts = msiEcHelper.getGPUFanCurve().split(':');
+        if (parts.size() == 2) {
+            for (const QString &s : parts[0].split(','))
+                a.push_back(s.toInt());
+        }
+        if (a.size() == fanTempSettingsCount)
+            return a;
+        a.clear();
     }
+    for (int i = 0; i < fanTempSettingsCount; i++)
+        a.push_back(helper.getValue(fan2TempSettingStartAddress + i));
     return a;
 }
 
@@ -290,6 +357,12 @@ bool Operate::getWebCamState() const {
     return false;
 }
 
+bool Operate::getWebCamBlockState() const {
+    if (msiEcHelper.hasWebcamBlock())
+        return msiEcHelper.getWebcamBlock();
+    return false;
+}
+
 bool Operate::getFnSuperSwapState() const {
     if (msiEcHelper.hasFnWinSwap())
         return msiEcHelper.getFnWinSwap();
@@ -309,22 +382,23 @@ bool Operate::getCoolerBoostState() const {
 user_mode Operate::getUserMode() const {
     if (msiEcHelper.hasShiftMode()) {
         shift_mode shiftMode = msiEcHelper.getShiftMode();
-        switch(shiftMode) {
+        fan_mode fanMode = getFanMode();
+        switch (shiftMode) {
             case shift_mode::eco_mode:
-                return user_mode::super_battery_mode;
-            case shift_mode::comfort_mode: {
-                fan_mode fanMode = getFanMode();
+                return fanMode == fan_mode::auto_fan_mode ?
+                       user_mode::super_battery_mode : user_mode::custom_mode;
+            case shift_mode::comfort_mode:
                 if (fanMode == fan_mode::silent_fan_mode)
                     return user_mode::silent_mode;
-                else
+                if (fanMode == fan_mode::auto_fan_mode)
                     return user_mode::balanced_mode;
-            }
-            case shift_mode::sport_mode: // ?
-                return user_mode::balanced_mode;
+                return user_mode::custom_mode;
             case shift_mode::turbo_mode:
-                return user_mode::performance_mode;
+                return fanMode == fan_mode::auto_fan_mode ?
+                       user_mode::performance_mode : user_mode::custom_mode;
+            case shift_mode::sport_mode:
             default:
-                return user_mode::unknown_mode;
+                return user_mode::custom_mode;
         }
     }
     return user_mode::unknown_mode;
@@ -347,30 +421,81 @@ fan_mode Operate::getFanMode() const {
     }
 }
 
-void Operate::setBatteryThreshold(int value) const {
+QString Operate::getShiftModeName() const {
+    if (msiEcHelper.hasShiftMode())
+        return msiEcHelper.getShiftModeName();
+    switch (helper.getValue(shiftModeAddress)) {
+        case 0xc0: return "sport";
+        case 0xc1: return "comfort";
+        case 0xc2: return "eco";
+        case 0xc3: return "user";
+        case 0xc4: return "turbo";
+        default:   return "unknown";
+    }
+}
+
+QString Operate::getFanModeName() const {
+    if (msiEcHelper.hasFanMode())
+        return msiEcHelper.getFanModeName();
+    switch (helper.getValue(fanModeAddress)) {
+        case fanModeAuto:     return "auto";
+        case fanModeSilent:   return "silent";
+        case fanModeBasic:    return "basic";
+        case fanModeAdvanced: return "advanced";
+        default:              return "unknown";
+    }
+}
+
+QStringList Operate::getAvailableShiftModeNames() const {
+    if (msiEcHelper.hasShiftMode())
+        return msiEcHelper.getAvailableShiftModesString().split('\n', Qt::SkipEmptyParts);
+    return {"eco", "comfort", "sport", "turbo"};
+}
+
+QStringList Operate::getAvailableFanModeNames() const {
+    if (msiEcHelper.hasFanMode())
+        return msiEcHelper.getAvailableFanModesString().split('\n', Qt::SkipEmptyParts);
+    return {"auto", "silent", "basic", "advanced"};
+}
+
+QString Operate::getDriverName() const {
+    const QString path = msiEcHelper.getMsiEcPath();
+    return path.isEmpty() ? QString("unknown") : path.section('/', -1);
+}
+
+int Operate::getBatteryStartThreshold() const {
+    if (msiEcHelper.hasBatteryStartThreshold())
+        return msiEcHelper.getBatteryStartThreshold();
+    return qMax(getBatteryThreshold() - 10, 0);
+}
+
+bool Operate::setBatteryThreshold(int value) const {
     if (msiEcHelper.hasBatteryEndThreshold())
         return msiEcHelper.setBatteryEndThreshold(value);
     if (value != getBatteryThreshold())
         helper.putValue(batteryThresholdAddress, value + 128);
+    return true;
 }
 
-void Operate::setKeyboardBacklightMode(int value) const {
+bool Operate::setKeyboardBacklightMode(int value) const {
     if (msiEcHelper.hasKeyboardBacklightMode())
         return msiEcHelper.setKeyboardBacklightMode(value);
     int resValue = keyboardBacklightAlwaysOn;
     if (value == 1)
         resValue = keyboardBacklightAutoTurnOff;
     helper.putValue(keyboardBacklightModeAddress, resValue);
+    return true;
 }
 
-void Operate::setKeyboardBacklightEnabled(bool enabled) const {
+bool Operate::setKeyboardBacklightEnabled(bool enabled) const {
     if (msiEcHelper.hasKeyboardBacklightEnable())
         return msiEcHelper.setKeyboardBacklightEnable(enabled);
     if (!enabled)
-        setKeyboardBrightness(0);
+        return setKeyboardBrightness(0);
+    return true;
 }
 
-void Operate::setKeyboardBrightness(int value) const {
+bool Operate::setKeyboardBrightness(int value) const {
     if (msiEcHelper.hasKeyboardBacklightBrightness())
         return msiEcHelper.setKeyboardBacklightBrightness(value);
     int resValue;
@@ -391,45 +516,53 @@ void Operate::setKeyboardBrightness(int value) const {
             resValue = keyboardBacklight0ff;
     }
     helper.putValue(keyboardBacklightAddress, resValue);
+    return true;
 }
 
-void Operate::setUsbPowerShareState(const QString &state) const {
-    if (msiEcHelper.hasUsbPowerShare()) {
-        msiEcHelper.setUsbPowerShare(state);
-        Settings::setValue(settingsGroup + "UsbPowerShare", state);
-        return;
-    }
+bool Operate::setUsbPowerShareState(const QString &state) const {
+    if (msiEcHelper.hasUsbPowerShare())
+        return msiEcHelper.setUsbPowerShare(state);
     int value = (state == "off") ? usbPowerShareOff : usbPowerShareOn;
     helper.putValue(usbPowerShareAddress, value);
-    Settings::setValue(settingsGroup + "UsbPowerShare", state);
+    return true;
 }
 
-void Operate::setQc3State(bool enabled) const {
+bool Operate::setQc3State(bool enabled) const {
     if (msiEcHelper.hasQc3())
-        msiEcHelper.setQc3(enabled);
+        return msiEcHelper.setQc3(enabled);
+    return false;
 }
 
-void Operate::setPanelState(bool enabled) const {
+bool Operate::setPanelState(bool enabled) const {
     if (msiEcHelper.hasPanel())
-        msiEcHelper.setPanel(enabled);
+        return msiEcHelper.setPanel(enabled);
+    return false;
 }
 
-void Operate::setWebCamState(bool enabled) const {
+bool Operate::setWebCamState(bool enabled) const {
     if (msiEcHelper.hasWebcam())
         return msiEcHelper.setWebcam(enabled);
+    return false;
 }
 
-void Operate::setFnSuperSwapState(bool enabled) const {
+bool Operate::setWebCamBlockState(bool enabled) const {
+    if (msiEcHelper.hasWebcamBlock())
+        return msiEcHelper.setWebcamBlock(enabled);
+    return false;
+}
+
+bool Operate::setFnSuperSwapState(bool enabled) const {
     Settings::setValue(settingsGroup + "FnSuperSwap", enabled);
     if (msiEcHelper.hasFnWinSwap())
         return msiEcHelper.setFnWinSwap(enabled);
     if (getFnSuperSwapState() == enabled)
-        return;
+        return true;
     int value = helper.getValue(fnSuperSwapAddress) + (enabled ? 16 : -16);
     helper.putValue(fnSuperSwapAddress, value);
+    return true;
 }
 
-void Operate::setCoolerBoostState(bool enabled) const {
+bool Operate::setCoolerBoostState(bool enabled) const {
     if (msiEcHelper.hasCoolerBoost())
         return msiEcHelper.setCoolerBoost(enabled);
     int value = helper.getValue(coolerBoostAddress);
@@ -437,9 +570,10 @@ void Operate::setCoolerBoostState(bool enabled) const {
         helper.putValue(coolerBoostAddress, value + 128);
     if (!enabled && (value > 127))
         helper.putValue(coolerBoostAddress, value - 128);
+    return true;
 }
 
-void Operate::setUserMode(user_mode userMode) const {
+bool Operate::setUserMode(user_mode userMode) const {
     shift_mode shiftMode = shift_mode::comfort_mode;
     fan_mode fanMode = fan_mode::auto_fan_mode;
     bool superBattery = false;
@@ -450,7 +584,7 @@ void Operate::setUserMode(user_mode userMode) const {
             userModeStr = "balanced_mode";
             break;
         case user_mode::performance_mode:
-            shiftMode = shift_mode::turbo_mode; // sport on some devices?
+            shiftMode = shift_mode::turbo_mode;
             userModeStr = "performance_mode";
             break;
         case user_mode::silent_mode:
@@ -462,73 +596,172 @@ void Operate::setUserMode(user_mode userMode) const {
             superBattery = true;
             userModeStr = "super_battery_mode";
             break;
+        case user_mode::custom_mode:
+        case user_mode::unknown_mode:
         default:
-            return;
+            return true;
     }
 
-    if (msiEcHelper.hasShiftMode()) {
-        msiEcHelper.setShiftMode(shiftMode);
-    }
-    
-    if (msiEcHelper.hasFanMode()) {
-        msiEcHelper.setFanMode(fanMode);
-    }
+    bool ok = true;
+    if (msiEcHelper.hasShiftMode())
+        ok &= msiEcHelper.setShiftMode(shiftMode);
+    if (msiEcHelper.hasFanMode())
+        ok &= msiEcHelper.setFanMode(fanMode);
+    if (msiEcHelper.hasSuperBattery())
+        ok &= msiEcHelper.setSuperBattery(superBattery);
 
-    if (msiEcHelper.hasSuperBattery()) {
-        msiEcHelper.setSuperBattery(superBattery);
-    }
-
-    Settings::setValue(settingsGroup + "UserMode", userModeStr);
+    if (ok)
+        Settings::setValue(settingsGroup + "UserMode", userModeStr);
+    return ok;
 }
 
-void Operate::setFan1SpeedSettings(QVector<int> value) const {
+bool Operate::setFan1SpeedSettings(QVector<int> value) const {
     if (value.size() != fanSpeedSettingsCount)
-        return;
-    for (int i = 0; i < value.size(); i++) {
+        return false;
+
+    if (msiEcHelper.hasFanCurve()) {
+        const QVector<int> temps = getFan1TempSettings();
+        if (temps.size() != fanTempSettingsCount)
+            return false;
+        const QString curve = curveToString(temps) + ":" + curveToString(value.mid(1));
+        bool ok = msiEcHelper.setCPUFanCurve(curve);
+        if (msiEcHelper.hasFanCurveIdle())
+            ok = msiEcHelper.setCPUFanCurveIdle(value.first()) && ok;
+        if (ok)
+            Settings::setValue(settingsGroup + QString("fan1SpeedSettings"), value);
+        return ok;
+    }
+
+    for (int i = 0; i < value.size(); i++)
         helper.putValue(fan1SpeedSettingStartAddress + i, value[i]);
-    }
     Settings::setValue(settingsGroup + QString("fan1SpeedSettings"), value);
+    return true;
 }
 
-void Operate::setFan2SpeedSettings(QVector<int> value) const {
+bool Operate::setFan2SpeedSettings(QVector<int> value) const {
     if (value.size() != fanSpeedSettingsCount)
-        return;
-    for (int i = 0; i < value.size(); i++) {
+        return false;
+
+    if (msiEcHelper.hasFanCurve()) {
+        const QVector<int> temps = getFan2TempSettings();
+        if (temps.size() != fanTempSettingsCount)
+            return false;
+        const QString curve = curveToString(temps) + ":" + curveToString(value.mid(1));
+        bool ok = msiEcHelper.setGPUFanCurve(curve);
+        if (msiEcHelper.hasFanCurveIdle())
+            ok = msiEcHelper.setGPUFanCurveIdle(value.first()) && ok;
+        if (ok)
+            Settings::setValue(settingsGroup + QString("fan2SpeedSettings"), value);
+        return ok;
+    }
+
+    for (int i = 0; i < value.size(); i++)
         helper.putValue(fan2SpeedSettingStartAddress + i, value[i]);
-    }
     Settings::setValue(settingsGroup + QString("fan2SpeedSettings"), value);
+    return true;
 }
 
-void Operate::setFan1TempSettings(QVector<int> value) const {
+bool Operate::setFan1TempSettings(QVector<int> value) const {
     if (value.size() != fanTempSettingsCount)
-        return;
-    for (int i = 0; i < value.size(); i++) {
+        return false;
+
+    if (msiEcHelper.hasFanCurve()) {
+        const QVector<int> speeds = getFan1SpeedSettings();
+        if (speeds.size() != fanSpeedSettingsCount)
+            return false;
+        const QString curve = curveToString(value) + ":" + curveToString(speeds.mid(1));
+        const bool ok = msiEcHelper.setCPUFanCurve(curve);
+        if (ok)
+            Settings::setValue(settingsGroup + QString("fan1TempSettings"), value);
+        return ok;
+    }
+
+    for (int i = 0; i < value.size(); i++)
         helper.putValue(fan1TempSettingStartAddress + i, value[i]);
-    }
     Settings::setValue(settingsGroup + QString("fan1TempSettings"), value);
+    return true;
 }
 
-void Operate::setFan2TempSettings(QVector<int> value) const {
+bool Operate::setFan2TempSettings(QVector<int> value) const {
     if (value.size() != fanTempSettingsCount)
-        return;
-    for (int i = 0; i < value.size(); i++) {
-        helper.putValue(fan2TempSettingStartAddress + i, value[i]);
+        return false;
+
+    if (msiEcHelper.hasFanCurve()) {
+        const QVector<int> speeds = getFan2SpeedSettings();
+        if (speeds.size() != fanSpeedSettingsCount)
+            return false;
+        const QString curve = curveToString(value) + ":" + curveToString(speeds.mid(1));
+        const bool ok = msiEcHelper.setGPUFanCurve(curve);
+        if (ok)
+            Settings::setValue(settingsGroup + QString("fan2TempSettings"), value);
+        return ok;
     }
+
+    for (int i = 0; i < value.size(); i++)
+        helper.putValue(fan2TempSettingStartAddress + i, value[i]);
     Settings::setValue(settingsGroup + QString("fan2TempSettings"), value);
+    return true;
 }
 
-void Operate::setFanMode(int value) const {
-    if (helper.getValue(fanModeAddress) == fanModeAdvanced)
-        return;
+bool Operate::setFanMode(int value) const {
     helper.putValue(fanModeAddress, value);
+    return true;
 }
 
-void Operate::setFanModeAdvanced(bool enabled) const {
-    if (enabled)
-        helper.putValue(fanModeAddress, fanModeAdvanced);
-    else
-        helper.putValue(fanModeAddress, fanModeAuto);
+bool Operate::setFanModeAdvanced(bool enabled) const {
+    if (msiEcHelper.hasFanCurve())
+        return setFanCurveActive(enabled);
+    helper.putValue(fanModeAddress, enabled ? fanModeAdvanced : fanModeAuto);
     Settings::setValue(settingsGroup + "fanModeAdvanced", enabled);
+    return true;
+}
+
+bool Operate::setFanCurveActive(bool active) const {
+    if (msiEcHelper.hasFanCurve())
+        return msiEcHelper.setFanCurveActive(active);
+    return setFanModeAdvanced(active);
+}
+
+bool Operate::setFanModeByName(const QString &name) const {
+    if (msiEcHelper.hasFanMode())
+        return msiEcHelper.setFanModeName(name);
+
+    int value;
+    if (name == "auto")
+        value = fanModeAuto;
+    else if (name == "silent")
+        value = fanModeSilent;
+    else if (name == "basic")
+        value = fanModeBasic;
+    else if (name == "advanced")
+        value = fanModeAdvanced;
+    else
+        return false;
+
+    helper.putValue(fanModeAddress, value);
+    return true;
+}
+
+bool Operate::setShiftModeByName(const QString &name) const {
+    if (msiEcHelper.hasShiftMode())
+        return msiEcHelper.setShiftModeName(name);
+
+    int value;
+    if (name == "sport")
+        value = 0xc0;
+    else if (name == "comfort")
+        value = 0xc1;
+    else if (name == "eco")
+        value = 0xc2;
+    else if (name == "user")
+        value = 0xc3;
+    else if (name == "turbo")
+        value = 0xc4;
+    else
+        return false;
+
+    helper.putValue(shiftModeAddress, value);
+    return true;
 }
 
 int Operate::getValue(int address) const {
@@ -578,9 +811,11 @@ bool Operate::isPanelSupport() const {
 }
 
 bool Operate::isWebCamOffSupport() const {
-    if (msiEcHelper.hasWebcamBlock())
-        return true;
-    return false;
+    return msiEcHelper.hasWebcam() || msiEcHelper.hasWebcamBlock();
+}
+
+bool Operate::isWebCamBlockSupport() const {
+    return msiEcHelper.hasWebcamBlock();
 }
 
 void Operate::loadSettings() const {

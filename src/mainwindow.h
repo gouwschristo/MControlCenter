@@ -64,11 +64,15 @@ private:
     void updateQc3State();
     void updatePanelState();
     void updateWebCamState() const;
-    void updateFnSuperSwapState();
+    void updateWebCamBlockState() const;
+    void updateFnSuperSwapState() const;
     void updateCoolerBoostState() const;
     void updateUserMode();
     void updateFanMode();
+    void updateShiftMode();
     void updateFanSpeedSettings();
+    void updateTrayTooltip() const;
+    void applyResult(bool ok, const QString &what) const;
 
     void setBestMobility();
     void setBalancedBattery();
@@ -86,8 +90,12 @@ private:
     QVector<int> getFan1TempValues() const;
     QVector<int> getFan2TempValues() const;
     void setFanSpeedSettings();
+    void loadDefaultFanSettings();
     void setFanModeAdvanced(bool enabled) const;
     void checkFanSettingsChanged() const;
+
+    void cycleProfile();
+    void copyDiagnostics() const;
 
     void showEvent(QShowEvent *event);
     void closeEvent(QCloseEvent *event);
@@ -109,6 +117,8 @@ private:
     QMenu *batteryTrayMenu = nullptr;
 
     QAction *coolerBoostAction = nullptr;
+    QAction *cycleProfileAction = nullptr;
+    QAction *diagnosticsAction = nullptr;
 
     QActionGroup *modeTrayActions = nullptr;
     QAction *highPerformanceMode = nullptr;
@@ -141,6 +151,9 @@ private slots:
     void on_qc3CheckBox_toggled(bool checked) const;
     void on_panelCheckBox_toggled(bool checked) const;
     void on_webCamCheckBox_clicked(bool checked) const;
+    void on_webcamBlockCheckBox_clicked(bool checked) const;
+    void on_shiftModeComboBox_currentIndexChanged(int index);
+    void on_fanModeComboBox_currentIndexChanged(int index);
 
     void on_fnSuperSwapCheckBox_clicked(bool checked) const;
 
