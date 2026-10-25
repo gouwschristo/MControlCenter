@@ -18,6 +18,7 @@
 
 #include "powermonitor.h"
 #include <QDBusInterface>
+#include <QDBusMessage>
 #include <qdbusconnectioninterface.h>
 
 PowerMonitor::PowerMonitor() = default;
@@ -175,6 +176,34 @@ void PowerMonitor::queryPowerProfile() {
 
         emit currentPowerProfile(profile);
     }
+}
+
+uint PowerMonitor::holdPowerProfile(const QString &profile, const QString &reason,
+                                    const QString &applicationId) const {
+    QDBusInterface iface(
+        "net.hadess.PowerProfiles",
+        "/org/freedesktop/UPower/PowerProfiles",
+        "org.freedesktop.UPower.PowerProfiles",
+        QDBusConnection::systemBus()
+        );
+
+    QDBusReply<uint> reply = iface.call("HoldProfile", profile, reason, applicationId);
+    return reply.isValid() ? reply.value() : 0;
+}
+
+bool PowerMonitor::releasePowerProfile(uint cookie) const {
+    if (cookie == 0)
+        return false;
+
+    QDBusInterface iface(
+        "net.hadess.PowerProfiles",
+        "/org/freedesktop/UPower/PowerProfiles",
+        "org.freedesktop.UPower.PowerProfiles",
+        QDBusConnection::systemBus()
+        );
+
+    const QDBusMessage reply = iface.call("ReleaseProfile", cookie);
+    return reply.type() != QDBusMessage::ErrorMessage;
 }
 
 void PowerMonitor::onPowerProfileChanged(

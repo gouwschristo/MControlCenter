@@ -40,6 +40,9 @@ public:
     void disconnectFromPowerProfiles();
     void queryChargerState();
     void queryPowerProfile();
+    [[nodiscard]] uint holdPowerProfile(const QString &profile, const QString &reason,
+                                        const QString &applicationId) const;
+    bool releasePowerProfile(uint cookie) const;
 
     Q_ENUM(PowerProfile)
 

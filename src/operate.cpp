@@ -379,6 +379,12 @@ bool Operate::getCoolerBoostState() const {
     return false;
 }
 
+bool Operate::getSuperBatteryState() const {
+    if (msiEcHelper.hasSuperBattery())
+        return msiEcHelper.getSuperBattery();
+    return false;
+}
+
 user_mode Operate::getUserMode() const {
     if (msiEcHelper.hasShiftMode()) {
         shift_mode shiftMode = msiEcHelper.getShiftMode();
@@ -570,6 +576,12 @@ bool Operate::setCoolerBoostState(bool enabled) const {
         helper.putValue(coolerBoostAddress, value + 128);
     if (!enabled && (value > 127))
         helper.putValue(coolerBoostAddress, value - 128);
+    return true;
+}
+
+bool Operate::setSuperBatteryState(bool enabled) const {
+    if (msiEcHelper.hasSuperBattery())
+        return msiEcHelper.setSuperBattery(enabled);
     return true;
 }
 

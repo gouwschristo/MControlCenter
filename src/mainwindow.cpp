@@ -147,6 +147,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(&powerMonitor, &PowerMonitor::currentChargerState, this, &MainWindow::on_ChargerStateChange);
     connect(&powerMonitor, &PowerMonitor::currentPowerProfile, this, &MainWindow::on_PowerProfileChange);
+    connect(&gameMonitor, &GameMonitor::gameStateChanged, this, &MainWindow::onGameStateChanged);
 
     connect(qApp, &QGuiApplication::saveStateRequest, this, &MainWindow::saveStateRequest);
 
@@ -201,6 +202,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->userModeOnBatteryComboBox->setCurrentIndex(s.getValue("Settings/UserModeOnBattery").toInt());
     ui->userModeOnChargerComboBox->setCurrentIndex(s.getValue("Settings/UserModeOnCharger").toInt());
     ui->autoPPDCheckBox->setChecked(s.getValue("Settings/autoPPDstate").toBool());
+    ui->autoGameModeCheckBox->setChecked(s.getValue("Settings/autoGameModeState").toBool());
 
     // Label the vendor USB power-share profiles.
     for (int i = 0; i < ui->usbPowerShareComboBox->count(); i++) {
@@ -213,6 +215,9 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
+    disconnect(&gameMonitor, nullptr, this, nullptr);
+    gameMonitor.stop();
+    restoreGameMode();
     delete ui;
 }
 
@@ -963,6 +968,98 @@ void MainWindow::on_PowerProfileChange(const PowerProfile profile) {
     }
 }
 
+void MainWindow::onGameStateChanged(bool active, const QString &description) {
+    if (active) {
+        if (ui->autoGameModeCheckBox->isChecked())
+            applyGameMode(description);
+    } else {
+        restoreGameMode();
+    }
+}
+
+void MainWindow::applyGameMode(const QString &description) {
+    if (gameModeActive)
+        return;
+
+    (void)operate.updateEcData();
+
+    // PPD holds are tied to this D-Bus connection and are released when MCC
+    // disconnects, so a crash cannot leave a stale performance profile.
+    gameModePpdCookie = powerMonitor.holdPowerProfile(
+            "performance", tr("Game running: %1").arg(description), "mcontrolcenter");
+
+    if (ui->autoPPDCheckBox->isChecked() && gameModePpdCookie != 0) {
+        // PPD will emit ActiveProfile=performance and on_PowerProfileChange()
+        // applies the EC preset. Handle the case where PPD was already on
+        // performance, in which case no change signal is emitted.
+        if (operate.getUserMode() != user_mode::performance_mode)
+            setHighPerformanceMode();
+        gameModeManualEc = false;
+        gameModeActive = true;
+        statusBar()->showMessage(tr("Game mode: High Performance"), 3000);
+        return;
+    }
+
+    savedShiftMode = operate.getShiftModeName();
+    savedFanMode = operate.getFanModeName();
+    savedSuperBattery = operate.getSuperBatteryState();
+    savedFanCurveActive = operate.getFanCurveActive();
+
+    bool ok = operate.setShiftModeByName("turbo");
+    ok = operate.setFanModeByName("auto") && ok;
+    ok = operate.setSuperBatteryState(false) && ok;
+    if (savedFanCurveActive)
+        ok = operate.setFanCurveActive(false) && ok;
+
+    gameModeManualEc = true;
+    gameModeActive = true;
+
+    updateUserMode();
+    updateFanMode();
+    updateShiftMode();
+    updateFanSpeedSettings();
+    updateTrayTooltip();
+
+    if (ok)
+        statusBar()->showMessage(tr("Game mode: High Performance"), 3000);
+    else
+        statusBar()->showMessage(tr("Game mode: High Performance was only partially applied"), 4000);
+}
+
+void MainWindow::restoreGameMode() {
+    if (!gameModeActive)
+        return;
+
+    if (gameModePpdCookie != 0) {
+        powerMonitor.releasePowerProfile(gameModePpdCookie);
+        gameModePpdCookie = 0;
+        // Refresh the EC preset from PPD even if we missed the change signal.
+        powerMonitor.queryPowerProfile();
+    }
+
+    if (gameModeManualEc) {
+        (void)operate.updateEcData();
+
+        bool ok = operate.setShiftModeByName(savedShiftMode);
+        ok = operate.setFanModeByName(savedFanMode) && ok;
+        ok = operate.setSuperBatteryState(savedSuperBattery) && ok;
+        if (savedFanCurveActive)
+            ok = operate.setFanCurveActive(true) && ok;
+
+        updateUserMode();
+        updateFanMode();
+        updateShiftMode();
+        updateFanSpeedSettings();
+        updateTrayTooltip();
+
+        if (!ok)
+            statusBar()->showMessage(tr("Could not fully restore the pre-game profile"), 4000);
+    }
+
+    gameModeActive = false;
+    gameModeManualEc = false;
+}
+
 void MainWindow::on_bestMobilityRadioButton_toggled(bool checked) {
     if (checked)
         setBestMobility();
@@ -1109,12 +1206,18 @@ void MainWindow::on_autoAcDcProfilesGroupBox_toggled(bool checked) {
             return;
         }
 
+        // Game following and charger-based switching both own the preset.
+        if (ui->autoGameModeCheckBox->isChecked())
+            ui->autoGameModeCheckBox->setChecked(false);
+        ui->autoGameModeCheckBox->setEnabled(false);
+
         powerMonitor.disconnectFromPowerProfiles();
         ui->autoPPDCheckBox->setChecked(0);
         ui->autoPPDCheckBox->setEnabled(0);
         powerMonitor.queryChargerState();
     } else {
         ui->autoPPDCheckBox->setEnabled(1);
+        ui->autoGameModeCheckBox->setEnabled(true);
         powerMonitor.disconnectFromUpower();
     }
 
@@ -1122,6 +1225,9 @@ void MainWindow::on_autoAcDcProfilesGroupBox_toggled(bool checked) {
 }
 
 void MainWindow::on_autoPPDCheckBox_toggled(bool checked) {
+    if (gameModeActive)
+        restoreGameMode();
+
     if (checked) {
 
         if (!powerMonitor.connectToPowerProfiles()) {
@@ -1147,6 +1253,24 @@ void MainWindow::on_autoPPDCheckBox_toggled(bool checked) {
         ui->autoAcDcProfilesGroupBox->setEnabled(1);
     }
     Settings::setValue("Settings/autoPPDstate", checked);
+
+    if (ui->autoGameModeCheckBox->isChecked() && gameMonitor.isGameActive())
+        applyGameMode(gameMonitor.gameDescription());
+}
+
+void MainWindow::on_autoGameModeCheckBox_toggled(bool checked) {
+    if (checked) {
+        if (ui->autoAcDcProfilesGroupBox->isChecked())
+            ui->autoAcDcProfilesGroupBox->setChecked(false);
+        ui->autoAcDcProfilesGroupBox->setEnabled(false);
+        gameMonitor.start();
+    } else {
+        gameMonitor.stop();
+        restoreGameMode();
+        if (!ui->autoPPDCheckBox->isChecked())
+            ui->autoAcDcProfilesGroupBox->setEnabled(true);
+    }
+    Settings::setValue("Settings/autoGameModeState", checked);
 }
 
 void MainWindow::on_highPerformanceModeRadioButton_toggled(bool checked) {

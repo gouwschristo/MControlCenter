@@ -20,6 +20,7 @@
 #define MAINWINDOW_H
 
 #include "powermonitor.h"
+#include "gamemonitor.h"
 #include <QMainWindow>
 #include <QCloseEvent>
 #include <QSystemTrayIcon>
@@ -97,6 +98,9 @@ private:
     void cycleProfile();
     void copyDiagnostics() const;
 
+    void applyGameMode(const QString &description);
+    void restoreGameMode();
+
     void showEvent(QShowEvent *event);
     void closeEvent(QCloseEvent *event);
     void quitApp() const;
@@ -115,6 +119,15 @@ private:
     QMenu *modeTrayMenu = nullptr;
     QMenu *fanTrayMenu = nullptr;
     QMenu *batteryTrayMenu = nullptr;
+
+    GameMonitor gameMonitor;
+    bool gameModeActive = false;
+    bool gameModeManualEc = false;
+    uint gameModePpdCookie = 0;
+    QString savedShiftMode;
+    QString savedFanMode;
+    bool savedSuperBattery = false;
+    bool savedFanCurveActive = false;
 
     QAction *coolerBoostAction = nullptr;
     QAction *cycleProfileAction = nullptr;
@@ -169,6 +182,8 @@ private slots:
     void on_userModeOnChargerComboBox_currentIndexChanged(int index) const;
     void on_autoPPDCheckBox_toggled(bool checked);
     void on_autoAcDcProfilesGroupBox_toggled(bool active);
+    void on_autoGameModeCheckBox_toggled(bool checked);
+    void onGameStateChanged(bool active, const QString &description);
 
     void on_highPerformanceModeRadioButton_toggled(bool checked);
     void on_balancedModeRadioButton_toggled(bool checked);

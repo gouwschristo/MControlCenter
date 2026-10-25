@@ -95,6 +95,7 @@ public:
     [[nodiscard]] bool getWebCamBlockState() const;
     [[nodiscard]] bool getFnSuperSwapState() const;
     [[nodiscard]] bool getCoolerBoostState() const;
+    [[nodiscard]] bool getSuperBatteryState() const;
     [[nodiscard]] user_mode getUserMode() const;
     [[nodiscard]] fan_mode getFanMode() const;
     [[nodiscard]] QString getShiftModeName() const;
@@ -115,6 +116,7 @@ public:
     bool setWebCamBlockState(bool enabled) const;
     bool setFnSuperSwapState(bool enabled) const;
     bool setCoolerBoostState(bool enabled) const;
+    bool setSuperBatteryState(bool enabled) const;
     bool setUserMode(user_mode userMode) const;
     bool setFan1SpeedSettings(QVector<int> value) const;
     bool setFan2SpeedSettings(QVector<int> value) const;

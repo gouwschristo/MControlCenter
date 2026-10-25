@@ -361,6 +361,16 @@
                   </widget>
                  </item>
                  <item>
+                  <widget class="QCheckBox" name="autoGameModeCheckBox">
+                   <property name="text">
+                    <string>Follow games automatically</string>
+                   </property>
+                   <property name="toolTip">
+                    <string>While a supported game (Steam or Lutris) is running, temporarily switch to High Performance. If Follow the system power profile is enabled, PPD is held at performance instead. The previous mode is restored when the game exits.</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QWidget" name="modeFormWidget" native="true">
                    <layout class="QGridLayout" name="modeFormLayout">
                     <property name="leftMargin">
