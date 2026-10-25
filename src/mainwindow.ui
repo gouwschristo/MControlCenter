@@ -413,17 +413,7 @@
                        <string>High Performance</string>
                       </property>
                       <property name="toolTip">
-                       <string>Turbo shift mode with the automatic fan curve. Highest clocks, fan noise and power draw.</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="1">
-                     <widget class="QLabel" name="label_15">
-                      <property name="text">
-                       <string>Maximum performance at the cost of heat, fan noise and power consumption.</string>
-                      </property>
-                      <property name="wordWrap">
-                       <bool>true</bool>
+                       <string>Turbo shift mode with the automatic fan curve. Maximum clocks at the cost of heat, fan noise and power draw.</string>
                       </property>
                      </widget>
                     </item>
@@ -433,17 +423,7 @@
                        <string>Balanced</string>
                       </property>
                       <property name="toolTip">
-                       <string>Comfort shift mode with the automatic fan curve. The default everyday profile.</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="1" column="1">
-                     <widget class="QLabel" name="label_16">
-                      <property name="text">
-                       <string>A middle ground between fan noise and power usage.</string>
-                      </property>
-                      <property name="wordWrap">
-                       <bool>true</bool>
+                       <string>Comfort shift mode with the automatic fan curve. The default everyday middle ground between fan noise and power use.</string>
                       </property>
                      </widget>
                     </item>
@@ -453,17 +433,7 @@
                        <string>Silent</string>
                       </property>
                       <property name="toolTip">
-                       <string>Comfort shift mode with the silent fan curve. Lower fan noise and reduced sustained performance.</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="2" column="1">
-                     <widget class="QLabel" name="label_17">
-                      <property name="text">
-                       <string>Low fan noise and moderate power usage.</string>
-                      </property>
-                      <property name="wordWrap">
-                       <bool>true</bool>
+                       <string>Comfort shift mode with the silent fan curve. Low fan noise and moderate power use, with reduced sustained performance.</string>
                       </property>
                      </widget>
                     </item>
@@ -477,16 +447,6 @@
                       </property>
                      </widget>
                     </item>
-                    <item row="3" column="1">
-                     <widget class="QLabel" name="label_18">
-                      <property name="text">
-                       <string>Limits CPU/GPU clocks and voltage (eco shift mode).</string>
-                      </property>
-                      <property name="wordWrap">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
                     <item row="4" column="0">
                      <widget class="QRadioButton" name="customModeRadioButton">
                       <property name="enabled">
@@ -496,17 +456,7 @@
                        <string>Custom</string>
                       </property>
                       <property name="toolTip">
-                       <string>Shown when the EC is in sport/user shift mode or a non-preset fan mode. Change the values below or on the Fan control tab.</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="4" column="1">
-                     <widget class="QLabel" name="label_custom">
-                      <property name="text">
-                       <string>EC settings changed outside the app.</string>
-                      </property>
-                      <property name="wordWrap">
-                       <bool>true</bool>
+                       <string>Shown when the EC is in sport/user shift mode or a non-preset fan mode, usually because the settings were changed outside the app. Change the values below or on the Fan control tab.</string>
                       </property>
                      </widget>
                     </item>
