@@ -575,14 +575,14 @@
                     <string>Fan mode:</string>
                    </property>
                    <property name="toolTip">
-                    <string>EC fan-curve preset. 'basic' is also the value used while the user curve is active; 'advanced' is the vendor's aggressive curve.</string>
+                    <string>Fan speed preset only. It does not change power limits.</string>
                    </property>
                   </widget>
                  </item>
                  <item row="0" column="1">
                   <widget class="QComboBox" name="fanModeComboBox">
                    <property name="toolTip">
-                    <string>Choose the fan curve the EC should use. Selecting a mode leaves the user fan curve.</string>
+                    <string>Chooses the EC fan curve. This affects fan speed only — use Shift mode for power limits. 'basic' is also what the EC reports while the user fan curve is active; 'advanced' is the vendor's aggressive curve.</string>
                    </property>
                   </widget>
                  </item>
@@ -592,14 +592,14 @@
                     <string>Shift mode:</string>
                    </property>
                    <property name="toolTip">
-                    <string>EC performance preset. 'sport' and 'user' are vendor modes that do not map to an MCC profile.</string>
+                    <string>CPU/GPU power limit preset only. It does not change the fan curve.</string>
                    </property>
                   </widget>
                  </item>
                  <item row="1" column="1">
                   <widget class="QComboBox" name="shiftModeComboBox">
                    <property name="toolTip">
-                    <string>Choose the EC shift mode: turbo, eco, comfort, sport or user.</string>
+                    <string>Chooses the EC shift mode, which sets the CPU/GPU power limits. 'sport' and 'user' are vendor modes that do not map to an MCC profile.</string>
                    </property>
                   </widget>
                  </item>
@@ -609,17 +609,7 @@
                     <string>Cooler Boost</string>
                    </property>
                    <property name="toolTip">
-                    <string>Force both fans to maximum speed. Very loud; use only for short bursts.</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="3" column="0" colspan="2">
-                  <widget class="QLabel" name="fanModeHintLabel">
-                   <property name="text">
-                    <string>Fan mode controls the EC curve. Shift mode controls CPU/GPU power limits. Cooler Boost overrides both fan modes.</string>
-                   </property>
-                   <property name="wordWrap">
-                    <bool>true</bool>
+                    <string>Forces both fans to maximum speed, overriding the fan mode and the user fan curve. Very loud; use only for short bursts.</string>
                    </property>
                   </widget>
                  </item>
