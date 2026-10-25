@@ -309,9 +309,64 @@
              </layout>
             </item>
             <item>
-             <widget class="QCheckBox" name="usbPowerShareCheckBox">
+             <widget class="QComboBox" name="usbPowerShareComboBox">
+              <property name="toolTip">
+               <string>USB power sharing mode (off or one of the EC's six states)</string>
+              </property>
+              <item>
+               <property name="text">
+                <string>USB Power: Off</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>USB Power: State 0</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>USB Power: State 1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>USB Power: State 2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>USB Power: State 3</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>USB Power: State 4</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>USB Power: State 5</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="qc3CheckBox">
+              <property name="toolTip">
+               <string>Enable Quick Charge 3.0 while the laptop is awake (EC 0x2F bit 2)</string>
+              </property>
               <property name="text">
-               <string>USB Power</string>
+               <string>Quick Charge (QC3)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="panelCheckBox">
+              <property name="toolTip">
+               <string>Panel overdrive / OD toggle (EC 0x2E bit 4)</string>
+              </property>
+              <property name="text">
+               <string>Panel Overdrive</string>
               </property>
              </widget>
             </item>
@@ -1740,6 +1795,13 @@
          <widget class="QLabel" name="keyboardBacklightLabel">
           <property name="text">
            <string>Keyboard Backlight</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QCheckBox" name="kbdBacklightEnableCheckBox">
+          <property name="text">
+           <string>On</string>
           </property>
          </widget>
         </item>

@@ -113,6 +113,45 @@ public:
     [[nodiscard]] int getKeyboardBacklightBrightness() const;
     Q_NOREPLY void setKeyboardBacklightBrightness(int value) const;
 
+    // kbd_backlight_enable (ng)
+    [[nodiscard]] bool hasKeyboardBacklightEnable() const;
+    [[nodiscard]] bool getKeyboardBacklightEnable() const;
+    Q_NOREPLY void setKeyboardBacklightEnable(bool enable) const;
+
+    // kbd_backlight_mode (ng)
+    [[nodiscard]] bool hasKeyboardBacklightMode() const;
+    [[nodiscard]] std::optional<int> getKeyboardBacklightMode() const;
+    Q_NOREPLY void setKeyboardBacklightMode(int mode) const;
+
+    // fan curves (ng)
+    [[nodiscard]] bool hasFanCurve() const;
+    [[nodiscard]] QString getCPUFanCurve() const;
+    Q_NOREPLY void setCPUFanCurve(QString curve) const;
+    [[nodiscard]] QString getGPUFanCurve() const;
+    Q_NOREPLY void setGPUFanCurve(QString curve) const;
+    [[nodiscard]] bool getFanCurveActive() const;
+    Q_NOREPLY void setFanCurveActive(bool active) const;
+
+    // fan RPM (ng)
+    [[nodiscard]] bool hasFanRpm() const;
+    [[nodiscard]] std::optional<int> getCPUFanRpm() const;
+    [[nodiscard]] std::optional<int> getGPUFanRpm() const;
+
+    // usb_power_share (ng)
+    [[nodiscard]] bool hasUsbPowerShare() const;
+    [[nodiscard]] QString getUsbPowerShare() const;
+    Q_NOREPLY void setUsbPowerShare(QString state) const;
+
+    // qc3 (ng)
+    [[nodiscard]] bool hasQc3() const;
+    [[nodiscard]] bool getQc3() const;
+    Q_NOREPLY void setQc3(bool enable) const;
+
+    // panel (ng)
+    [[nodiscard]] bool hasPanel() const;
+    [[nodiscard]] bool getPanel() const;
+    Q_NOREPLY void setPanel(bool enable) const;
+
 private:
     QDBusInterface *iface;
     void printError(QDBusError const &error) const;

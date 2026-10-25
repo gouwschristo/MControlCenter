@@ -20,7 +20,16 @@
 #include <QFile>
 
 // Available entries: https://github.com/BeardOverflow/msi-ec?tab=readme-ov-file#usage
-const QString msi_ec_path = "/sys/devices/platform/msi-ec";
+// The ng fork adds fan curves, fan RPM, USB power-share, QC3, panel and
+// keyboard-backlight enable/mode attributes.
+static QString detectMsiEcPath() {
+    const QString ng = "/sys/devices/platform/msi-ec-ng";
+    if (QFile::exists(ng + "/fw_version"))
+        return ng;
+    return "/sys/devices/platform/msi-ec";
+}
+
+const QString msi_ec_path = detectMsiEcPath();
 const QString msi_ec_webcam = msi_ec_path + "/webcam";
 const QString msi_ec_webcam_block = msi_ec_path + "/webcam_block";
 const QString msi_ec_fn_key = msi_ec_path + "/fn_key";
@@ -45,6 +54,17 @@ const QString msi_ec_bat1_capacity = msi_ec_bat1 + "/capacity";
 const QString msi_ec_bat1_status = msi_ec_bat1 + "/status";
 // /sys/class/leds/platform::<led_name>/brightness
 const QString msi_ec_kbd_backlight_brightness = "/sys/class/leds/msiacpi::kbd_backlight/brightness";
+// ng fork additions
+const QString msi_ec_cpu_fan_curve = msi_ec_path + "/cpu/fan_curve";
+const QString msi_ec_gpu_fan_curve = msi_ec_path + "/gpu/fan_curve";
+const QString msi_ec_fan_curve_active = msi_ec_path + "/fan_curve_active";
+const QString msi_ec_cpu_fan_rpm = msi_ec_path + "/cpu/fan_rpm";
+const QString msi_ec_gpu_fan_rpm = msi_ec_path + "/gpu/fan_rpm";
+const QString msi_ec_usb_power_share = msi_ec_path + "/usb_power_share";
+const QString msi_ec_qc3 = msi_ec_path + "/qc3";
+const QString msi_ec_panel = msi_ec_path + "/panel";
+const QString msi_ec_kbd_backlight_enable = msi_ec_path + "/kbd_backlight_enable";
+const QString msi_ec_kbd_backlight_mode = msi_ec_path + "/kbd_backlight_mode";
 
 QString MsiEc::readFile(QString path) const {
     if (QFile file(path); file.exists() && file.open(QIODevice::ReadOnly)) {
@@ -130,15 +150,13 @@ bool MsiEc::hasFnWinSwap() const {
     return hasFnKey();
 }
 bool MsiEc::getFnWinSwap() const {
-    // here we only want to know if the keys are swapped or not
-    // we don't care if it is left or right
-    // swap may be inverted on some devices
-    // it would be better to get the value directly
-    // (e.g. with a file fn_win_swap)
-    return getFnKey() == "left";
+    // fn_key and win_key report the physical position of the keys.
+    // On this EC family bit 4 = 1 means win_key is left and fn_key is right,
+    // i.e. the keys are swapped. msi-ec exposes fn_key as "right" then.
+    return getFnKey() == "right";
 }
 void MsiEc::setFnWinSwap(bool swap) const {
-    setFnKey(swap ? "left" : "right");
+    setFnKey(swap ? "right" : "left");
 }
 
 //////////////// cooler_boost ////////////////
@@ -307,4 +325,98 @@ int MsiEc::getKeyboardBacklightBrightness() const {
 }
 void MsiEc::setKeyboardBacklightBrightness(int value) const {
     writeFile(msi_ec_kbd_backlight_brightness, QString::number(value));
+}
+
+//////////////// Keyboard backlight enable / mode (ng) ////////////////
+
+bool MsiEc::hasKeyboardBacklightEnable() const {
+    return QFile::exists(msi_ec_kbd_backlight_enable);
+}
+bool MsiEc::getKeyboardBacklightEnable() const {
+    return readFileOnOff(msi_ec_kbd_backlight_enable);
+}
+void MsiEc::setKeyboardBacklightEnable(bool enable) const {
+    writeFileOnOff(msi_ec_kbd_backlight_enable, enable);
+}
+
+bool MsiEc::hasKeyboardBacklightMode() const {
+    return QFile::exists(msi_ec_kbd_backlight_mode);
+}
+int MsiEc::getKeyboardBacklightMode() const {
+    return readFile(msi_ec_kbd_backlight_mode).toInt();
+}
+void MsiEc::setKeyboardBacklightMode(int mode) const {
+    writeFile(msi_ec_kbd_backlight_mode, QString::number(mode));
+}
+
+//////////////// Fan curves (ng) ////////////////
+
+bool MsiEc::hasFanCurve() const {
+    return QFile::exists(msi_ec_cpu_fan_curve) && QFile::exists(msi_ec_gpu_fan_curve);
+}
+QString MsiEc::getCPUFanCurve() const {
+    return readFile(msi_ec_cpu_fan_curve);
+}
+void MsiEc::setCPUFanCurve(QString curve) const {
+    writeFile(msi_ec_cpu_fan_curve, curve);
+}
+QString MsiEc::getGPUFanCurve() const {
+    return readFile(msi_ec_gpu_fan_curve);
+}
+void MsiEc::setGPUFanCurve(QString curve) const {
+    writeFile(msi_ec_gpu_fan_curve, curve);
+}
+bool MsiEc::getFanCurveActive() const {
+    return readFileOnOff(msi_ec_fan_curve_active);
+}
+void MsiEc::setFanCurveActive(bool active) const {
+    writeFileOnOff(msi_ec_fan_curve_active, active);
+}
+
+//////////////// Fan RPM (ng) ////////////////
+
+bool MsiEc::hasFanRpm() const {
+    return QFile::exists(msi_ec_cpu_fan_rpm) && QFile::exists(msi_ec_gpu_fan_rpm);
+}
+int MsiEc::getCPUFanRpm() const {
+    return readFile(msi_ec_cpu_fan_rpm).toInt();
+}
+int MsiEc::getGPUFanRpm() const {
+    return readFile(msi_ec_gpu_fan_rpm).toInt();
+}
+
+//////////////// USB power-share (ng) ////////////////
+
+bool MsiEc::hasUsbPowerShare() const {
+    return QFile::exists(msi_ec_usb_power_share);
+}
+QString MsiEc::getUsbPowerShare() const {
+    return readFile(msi_ec_usb_power_share);
+}
+void MsiEc::setUsbPowerShare(QString state) const {
+    writeFile(msi_ec_usb_power_share, state);
+}
+
+//////////////// Quick Charge QC3 (ng) ////////////////
+
+bool MsiEc::hasQc3() const {
+    return QFile::exists(msi_ec_qc3);
+}
+bool MsiEc::getQc3() const {
+    return readFileOnOff(msi_ec_qc3);
+}
+void MsiEc::setQc3(bool enable) const {
+    writeFileOnOff(msi_ec_qc3, enable);
+}
+
+//////////////// Panel / OD (ng) ////////////////
+
+bool MsiEc::hasPanel() const {
+    return QFile::exists(msi_ec_panel);
+}
+bool MsiEc::getPanel() const {
+    return readFileOnOff(msi_ec_panel);
+}
+void MsiEc::setPanel(bool enable) const {
+    writeFileOnOff(msi_ec_panel, enable);
 }

@@ -170,6 +170,8 @@ std::optional<int> Operate::getGpuTemp() const {
 }
 
 int Operate::getFan1Speed() const {
+    if (msiEcHelper.hasFanRpm())
+        return msiEcHelper.getCPUFanRpm().value_or(0);
     // Read 2 bytes (big-endian)
     int value0 = helper.getValue(fan1Address);
     int value1 = helper.getValue(fan1Address - 1);
@@ -180,6 +182,8 @@ int Operate::getFan1Speed() const {
 }
 
 std::optional<int> Operate::getFan2Speed() const {
+    if (msiEcHelper.hasFanRpm())
+        return msiEcHelper.getGPUFanRpm();
     if (msiEcHelper.isMsiEcModuleLoaded() && !msiEcHelper.hasGPURealtimeFanSpeed())
         return std::nullopt;
     // Read 2 bytes (big-endian)
@@ -226,9 +230,17 @@ QVector<int> Operate::getFan2TempSettings() const {
 }
 
 int Operate::getKeyboardBacklightMode() const {
+    if (msiEcHelper.hasKeyboardBacklightMode())
+        return msiEcHelper.getKeyboardBacklightMode().value_or(0);
     if (helper.getValue(keyboardBacklightModeAddress) == keyboardBacklightAutoTurnOff)
         return 1;
     return 0;
+}
+
+bool Operate::getKeyboardBacklightEnabled() const {
+    if (msiEcHelper.hasKeyboardBacklightEnable())
+        return msiEcHelper.getKeyboardBacklightEnable();
+    return getKeyboardBrightness() != 0;
 }
 
 int Operate::getKeyboardBrightness() const {
@@ -249,9 +261,26 @@ int Operate::getKeyboardBrightness() const {
     }
 }
 
-bool Operate::getUsbPowerShareState() const {
-    if (helper.getValue(usbPowerShareAddress) == usbPowerShareOn)
-        return true;
+QString Operate::getUsbPowerShareState() const {
+    if (msiEcHelper.hasUsbPowerShare())
+        return msiEcHelper.getUsbPowerShare();
+    int value = helper.getValue(usbPowerShareAddress);
+    if (value == usbPowerShareOn)
+        return "state0";
+    if (value == usbPowerShareOff)
+        return "off";
+    return "";
+}
+
+bool Operate::getQc3State() const {
+    if (msiEcHelper.hasQc3())
+        return msiEcHelper.getQc3();
+    return false;
+}
+
+bool Operate::getPanelState() const {
+    if (msiEcHelper.hasPanel())
+        return msiEcHelper.getPanel();
     return false;
 }
 
@@ -326,10 +355,19 @@ void Operate::setBatteryThreshold(int value) const {
 }
 
 void Operate::setKeyboardBacklightMode(int value) const {
+    if (msiEcHelper.hasKeyboardBacklightMode())
+        return msiEcHelper.setKeyboardBacklightMode(value);
     int resValue = keyboardBacklightAlwaysOn;
     if (value == 1)
         resValue = keyboardBacklightAutoTurnOff;
     helper.putValue(keyboardBacklightModeAddress, resValue);
+}
+
+void Operate::setKeyboardBacklightEnabled(bool enabled) const {
+    if (msiEcHelper.hasKeyboardBacklightEnable())
+        return msiEcHelper.setKeyboardBacklightEnable(enabled);
+    if (!enabled)
+        setKeyboardBrightness(0);
 }
 
 void Operate::setKeyboardBrightness(int value) const {
@@ -355,10 +393,25 @@ void Operate::setKeyboardBrightness(int value) const {
     helper.putValue(keyboardBacklightAddress, resValue);
 }
 
-void Operate::setUsbPowerShareState(bool enabled) const {
-    int value = enabled ? usbPowerShareOn : usbPowerShareOff;
+void Operate::setUsbPowerShareState(const QString &state) const {
+    if (msiEcHelper.hasUsbPowerShare()) {
+        msiEcHelper.setUsbPowerShare(state);
+        Settings::setValue(settingsGroup + "UsbPowerShare", state);
+        return;
+    }
+    int value = (state == "off") ? usbPowerShareOff : usbPowerShareOn;
     helper.putValue(usbPowerShareAddress, value);
-    Settings::setValue(settingsGroup + "UsbPowerShare", enabled);
+    Settings::setValue(settingsGroup + "UsbPowerShare", state);
+}
+
+void Operate::setQc3State(bool enabled) const {
+    if (msiEcHelper.hasQc3())
+        msiEcHelper.setQc3(enabled);
+}
+
+void Operate::setPanelState(bool enabled) const {
+    if (msiEcHelper.hasPanel())
+        msiEcHelper.setPanel(enabled);
 }
 
 void Operate::setWebCamState(bool enabled) const {
@@ -492,14 +545,11 @@ bool Operate::isBatteryThresholdSupport() const {
 }
 
 bool Operate::isKeyboardBacklightModeSupport() const {
-    // Backlight mode is not available for all keyboard with backlight
-    
-    // Keep the same behaviour for devices with brightness at 0xD3
-    if (keyboardBacklightAddress == keyboardBacklightAddress_0xD3)
+    if (msiEcHelper.hasKeyboardBacklightMode())
         return true;
-    
-    // By security, we concider that devices with brightness at 0xF3 don't have backlight mode
-    return false;
+
+    // Older models expose the mode through the raw 0xD3 backlight byte.
+    return keyboardBacklightAddress == keyboardBacklightAddress_0xD3;
 }
 
 bool Operate::isKeyboardBacklightSupport() const {
@@ -508,9 +558,23 @@ bool Operate::isKeyboardBacklightSupport() const {
     return false;
 }
 
+bool Operate::isKeyboardBacklightEnableSupport() const {
+    return msiEcHelper.hasKeyboardBacklightEnable();
+}
+
 bool Operate::isUsbPowerShareSupport() const {
+    if (msiEcHelper.hasUsbPowerShare())
+        return true;
     return (helper.getValue(usbPowerShareAddress) == usbPowerShareOff ||
             helper.getValue(usbPowerShareAddress) == usbPowerShareOn);
+}
+
+bool Operate::isQc3Support() const {
+    return msiEcHelper.hasQc3();
+}
+
+bool Operate::isPanelSupport() const {
+    return msiEcHelper.hasPanel();
 }
 
 bool Operate::isWebCamOffSupport() const {
@@ -536,8 +600,14 @@ void Operate::loadSettings() const {
 
     if (s.isValueExist(settingsGroup + "FnSuperSwap"))
         setFnSuperSwapState(s.getValue(settingsGroup + "FnSuperSwap").toBool());
-    if (isUsbPowerShareSupport() && s.isValueExist(settingsGroup + "UsbPowerShare"))
-        setUsbPowerShareState(s.getValue(settingsGroup + "UsbPowerShare").toBool());
+    if (isUsbPowerShareSupport() && s.isValueExist(settingsGroup + "UsbPowerShare")) {
+        QString state = s.getValue(settingsGroup + "UsbPowerShare").toString();
+        if (state == "true")
+            state = "state0";
+        else if (state == "false")
+            state = "off";
+        setUsbPowerShareState(state);
+    }
 
     if (s.isValueExist(settingsGroup + "fan1SpeedSettings"))
         setFan1SpeedSettings(s.getValueVector(settingsGroup + "fan1SpeedSettings"));

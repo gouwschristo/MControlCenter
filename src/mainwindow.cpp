@@ -278,15 +278,29 @@ void MainWindow::loadConfigs() {
 
     if (operate.isKeyboardBacklightSupport()) {
         updateKeyboardBrightness();
+        ui->kbdBacklightEnableCheckBox->setEnabled(operate.isKeyboardBacklightEnableSupport());
     } else {
         ui->keyboardBrightnessSlider->setEnabled(false);
+        ui->kbdBacklightEnableCheckBox->setEnabled(false);
         ui->tabWidget->removeTab(3);
     }
 
     if (operate.isUsbPowerShareSupport()) {
         updateUsbPowerShareState();
     } else {
-        ui->usbPowerShareCheckBox->setEnabled(false);
+        ui->usbPowerShareComboBox->setEnabled(false);
+    }
+
+    if (operate.isQc3Support()) {
+        updateQc3State();
+    } else {
+        ui->qc3CheckBox->setEnabled(false);
+    }
+
+    if (operate.isPanelSupport()) {
+        updatePanelState();
+    } else {
+        ui->panelCheckBox->setEnabled(false);
     }
 
     if (operate.isWebCamOffSupport()) {
@@ -410,10 +424,24 @@ void MainWindow::updateKeyboardBacklightMode() {
 
 void MainWindow::updateKeyboardBrightness() const {
     ui->keyboardBrightnessSlider->setSliderPosition(operate.getKeyboardBrightness());
+    if (operate.isKeyboardBacklightEnableSupport())
+        ui->kbdBacklightEnableCheckBox->setChecked(operate.getKeyboardBacklightEnabled());
 }
 
 void MainWindow::updateUsbPowerShareState() {
-    ui->usbPowerShareCheckBox->setChecked(operate.getUsbPowerShareState());
+    const QString state = operate.getUsbPowerShareState();
+    int index = 0; // off
+    if (state.startsWith("state"))
+        index = state.mid(5).toInt() + 1;
+    ui->usbPowerShareComboBox->setCurrentIndex(index);
+}
+
+void MainWindow::updateQc3State() {
+    ui->qc3CheckBox->setChecked(operate.getQc3State());
+}
+
+void MainWindow::updatePanelState() {
+    ui->panelCheckBox->setChecked(operate.getPanelState());
 }
 
 void MainWindow::updateWebCamState() const {
@@ -792,8 +820,19 @@ void MainWindow::on_WriteValueButton_clicked() const {
     operate.setValue(address, ui->ValueSpinBox->value());
 }
 
-void MainWindow::on_usbPowerShareCheckBox_clicked(bool checked) const {
-    operate.setUsbPowerShareState(checked);
+void MainWindow::on_usbPowerShareComboBox_currentIndexChanged(int index) const {
+    if (index <= 0)
+        operate.setUsbPowerShareState("off");
+    else
+        operate.setUsbPowerShareState(QString("state%1").arg(index - 1));
+}
+
+void MainWindow::on_qc3CheckBox_toggled(bool checked) const {
+    operate.setQc3State(checked);
+}
+
+void MainWindow::on_panelCheckBox_toggled(bool checked) const {
+    operate.setPanelState(checked);
 }
 
 void MainWindow::on_webCamCheckBox_clicked(bool checked) const {
@@ -813,7 +852,16 @@ void MainWindow::on_coolerBoostCheckBox_clicked(bool checked) const {
 }
 
 void MainWindow::on_keyboardBrightnessSlider_valueChanged(int value) const {
+    if (value > 0)
+        operate.setKeyboardBacklightEnabled(true);
     operate.setKeyboardBrightness(value);
+    if (operate.updateEcData()) {
+        updateKeyboardBrightness();
+    }
+}
+
+void MainWindow::on_kbdBacklightEnableCheckBox_toggled(bool checked) const {
+    operate.setKeyboardBacklightEnabled(checked);
     if (operate.updateEcData()) {
         updateKeyboardBrightness();
     }

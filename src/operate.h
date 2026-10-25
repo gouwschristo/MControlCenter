@@ -80,8 +80,11 @@ public:
     [[nodiscard]] QVector<int> getFan2TempSettings() const;
 
     [[nodiscard]] int getKeyboardBacklightMode() const;
+    [[nodiscard]] bool getKeyboardBacklightEnabled() const;
     [[nodiscard]] int getKeyboardBrightness() const;
-    [[nodiscard]] bool getUsbPowerShareState() const;
+    [[nodiscard]] QString getUsbPowerShareState() const;
+    [[nodiscard]] bool getQc3State() const;
+    [[nodiscard]] bool getPanelState() const;
     [[nodiscard]] bool getWebCamState() const;
     [[nodiscard]] bool getFnSuperSwapState() const;
     [[nodiscard]] bool getCoolerBoostState() const;
@@ -90,8 +93,11 @@ public:
 
     void setBatteryThreshold(int value) const;
     void setKeyboardBacklightMode(int value) const;
+    void setKeyboardBacklightEnabled(bool enabled) const;
     void setKeyboardBrightness(int value) const;
-    void setUsbPowerShareState(bool enabled) const;
+    void setUsbPowerShareState(const QString &state) const;
+    void setQc3State(bool enabled) const;
+    void setPanelState(bool enabled) const;
     void setWebCamState(bool enabled) const;
     void setFnSuperSwapState(bool enabled) const;
     void setCoolerBoostState(bool enabled) const;
@@ -109,7 +115,10 @@ public:
     [[nodiscard]] bool isBatteryThresholdSupport() const;
     [[nodiscard]] bool isKeyboardBacklightModeSupport() const;
     [[nodiscard]] bool isKeyboardBacklightSupport() const;
+    [[nodiscard]] bool isKeyboardBacklightEnableSupport() const;
     [[nodiscard]] bool isUsbPowerShareSupport() const;
+    [[nodiscard]] bool isQc3Support() const;
+    [[nodiscard]] bool isPanelSupport() const;
     [[nodiscard]] bool isWebCamOffSupport() const;
 
     void loadSettings() const;

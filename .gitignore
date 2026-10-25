@@ -35,3 +35,4 @@
 /build/
 /scripts/*.tar.gz
 /scripts/MControlCenter-*-bin/
+src/i18n/*.qm

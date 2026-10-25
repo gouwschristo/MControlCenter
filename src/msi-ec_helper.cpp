@@ -343,6 +343,118 @@ void MsiEcHelper::setKeyboardBacklightBrightness(int value) const {
     return setValue<int>("setKeyboardBacklightBrightness", value);
 }
 
+//////////////// Keyboard backlight enable / mode (ng) ////////////////
+
+bool MsiEcHelper::hasKeyboardBacklightEnable() const {
+    return getValue<bool>("hasKeyboardBacklightEnable", false);
+}
+
+bool MsiEcHelper::getKeyboardBacklightEnable() const {
+    return getValue<bool>("getKeyboardBacklightEnable", false);
+}
+
+void MsiEcHelper::setKeyboardBacklightEnable(bool enable) const {
+    setValue<bool>("setKeyboardBacklightEnable", enable);
+}
+
+bool MsiEcHelper::hasKeyboardBacklightMode() const {
+    return getValue<bool>("hasKeyboardBacklightMode", false);
+}
+
+std::optional<int> MsiEcHelper::getKeyboardBacklightMode() const {
+    return getOptionalValue<int>("getKeyboardBacklightMode");
+}
+
+void MsiEcHelper::setKeyboardBacklightMode(int mode) const {
+    setValue<int>("setKeyboardBacklightMode", mode);
+}
+
+//////////////// Fan curves (ng) ////////////////
+
+bool MsiEcHelper::hasFanCurve() const {
+    return getValue<bool>("hasFanCurve", false);
+}
+
+QString MsiEcHelper::getCPUFanCurve() const {
+    return getValue<QString>("getCPUFanCurve", "");
+}
+
+void MsiEcHelper::setCPUFanCurve(QString curve) const {
+    setValue<QString>("setCPUFanCurve", curve);
+}
+
+QString MsiEcHelper::getGPUFanCurve() const {
+    return getValue<QString>("getGPUFanCurve", "");
+}
+
+void MsiEcHelper::setGPUFanCurve(QString curve) const {
+    setValue<QString>("setGPUFanCurve", curve);
+}
+
+bool MsiEcHelper::getFanCurveActive() const {
+    return getValue<bool>("getFanCurveActive", false);
+}
+
+void MsiEcHelper::setFanCurveActive(bool active) const {
+    setValue<bool>("setFanCurveActive", active);
+}
+
+//////////////// Fan RPM (ng) ////////////////
+
+bool MsiEcHelper::hasFanRpm() const {
+    return getValue<bool>("hasFanRpm", false);
+}
+
+std::optional<int> MsiEcHelper::getCPUFanRpm() const {
+    return getOptionalValue<int>("getCPUFanRpm");
+}
+
+std::optional<int> MsiEcHelper::getGPUFanRpm() const {
+    return getOptionalValue<int>("getGPUFanRpm");
+}
+
+//////////////// USB power-share (ng) ////////////////
+
+bool MsiEcHelper::hasUsbPowerShare() const {
+    return getValue<bool>("hasUsbPowerShare", false);
+}
+
+QString MsiEcHelper::getUsbPowerShare() const {
+    return getValue<QString>("getUsbPowerShare", "");
+}
+
+void MsiEcHelper::setUsbPowerShare(QString state) const {
+    setValue<QString>("setUsbPowerShare", state);
+}
+
+//////////////// QC3 (ng) ////////////////
+
+bool MsiEcHelper::hasQc3() const {
+    return getValue<bool>("hasQc3", false);
+}
+
+bool MsiEcHelper::getQc3() const {
+    return getValue<bool>("getQc3", false);
+}
+
+void MsiEcHelper::setQc3(bool enable) const {
+    setValue<bool>("setQc3", enable);
+}
+
+//////////////// Panel / OD (ng) ////////////////
+
+bool MsiEcHelper::hasPanel() const {
+    return getValue<bool>("hasPanel", false);
+}
+
+bool MsiEcHelper::getPanel() const {
+    return getValue<bool>("getPanel", false);
+}
+
+void MsiEcHelper::setPanel(bool enable) const {
+    setValue<bool>("setPanel", enable);
+}
+
 ////////////////////////////////
 
 void MsiEcHelper::printError(QDBusError const &error) const {

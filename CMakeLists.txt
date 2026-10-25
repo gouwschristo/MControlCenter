@@ -31,36 +31,26 @@ set(PROJECT_SOURCES
     src/resources.qrc
 )
 
-#TODO: use I18N_SOURCE_LANGUAGE in qt_standard_project_setup() for translation
-#when buntu/mint ship qt6.8
-set(TS_FILES
-    MControlCenter_de_DE.ts
-    MControlCenter_en.ts
-    MControlCenter_es.ts
-    MControlCenter_eu.ts
-    MControlCenter_fi_FI.ts
-    MControlCenter_fr.ts
-    MControlCenter_hu.ts
-    MControlCenter_it.ts
-    MControlCenter_nb.ts
-    MControlCenter_nl_NL.ts
-    MControlCenter_pt_BR.ts
-    MControlCenter_pt_PT.ts
-    MControlCenter_ru.ts
-    MControlCenter_tr.ts
-    MControlCenter_vi.ts
-    MControlCenter_zh_CN.ts
-)
+# src/resources.qrc embeds the .qm files next to the .ts sources, so generate
+# them in-tree at build time. qt_add_translations() would put them in the build
+# directory and leave the qrc references unresolved.
+file(GLOB TS_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/*.ts")
+set(QM_FILES "")
+foreach(ts_file IN LISTS TS_FILES)
+    string(REPLACE ".ts" ".qm" qm_file "${ts_file}")
+    list(APPEND QM_FILES "${qm_file}")
+    add_custom_command(
+        OUTPUT "${qm_file}"
+        COMMAND Qt6::lrelease "${ts_file}" -qm "${qm_file}"
+        DEPENDS "${ts_file}"
+        VERBATIM
+    )
+endforeach()
+add_custom_target(translations ALL DEPENDS ${QM_FILES})
+set_source_files_properties(src/resources.qrc PROPERTIES OBJECT_DEPENDS "${QM_FILES}")
 
 qt_add_executable(mcontrolcenter
     ${PROJECT_SOURCES}
-)
-
-qt_add_translations(mcontrolcenter
-    TS_FILES ${TS_FILES}
-    LUPDATE_OPTIONS
-        -no-obsolete
-        -locations none
 )
 
 add_subdirectory(src/helper ${CMAKE_BINARY_DIR}/helper)

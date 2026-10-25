@@ -61,6 +61,8 @@ private:
     void updateKeyboardBacklightMode();
     void updateKeyboardBrightness() const;
     void updateUsbPowerShareState();
+    void updateQc3State();
+    void updatePanelState();
     void updateWebCamState() const;
     void updateFnSuperSwapState();
     void updateCoolerBoostState() const;
@@ -135,7 +137,9 @@ private slots:
 
     void on_WriteValueButton_clicked() const;
 
-    void on_usbPowerShareCheckBox_clicked(bool checked) const;
+    void on_usbPowerShareComboBox_currentIndexChanged(int index) const;
+    void on_qc3CheckBox_toggled(bool checked) const;
+    void on_panelCheckBox_toggled(bool checked) const;
     void on_webCamCheckBox_clicked(bool checked) const;
 
     void on_fnSuperSwapCheckBox_clicked(bool checked) const;
@@ -143,6 +147,8 @@ private slots:
     void on_coolerBoostCheckBox_clicked(bool checked) const;
 
     void on_keyboardBrightnessSlider_valueChanged(int value) const;
+
+    void on_kbdBacklightEnableCheckBox_toggled(bool checked) const;
 
     void on_keyboardBacklightModeComboBox_currentIndexChanged(int index) const;
 
