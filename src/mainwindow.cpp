@@ -26,6 +26,46 @@
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QTextStream>
+#include <QPainter>
+#include <QStyle>
+
+namespace {
+
+// Breeze's battery pictogram fills its whole box, so it reads heavier than the
+// outline icons used by the other tabs. Draw it slightly smaller in the same slot.
+void shrinkTabIcon(QTabWidget *tabs, QWidget *page, qreal scale) {
+    const int index = tabs->indexOf(page);
+    if (index < 0)
+        return;
+    const QIcon icon = tabs->tabIcon(index);
+    if (icon.isNull())
+        return;
+
+    QSize slot = tabs->iconSize();
+    if (!slot.isValid()) {
+        const int side = tabs->style()->pixelMetric(QStyle::PM_TabBarIconSize, nullptr, tabs);
+        slot = QSize(side, side);
+    }
+    if (slot.isEmpty())
+        return;
+
+    const qreal ratio = tabs->devicePixelRatioF();
+    QPixmap canvas(QSize(qRound(slot.width() * ratio), qRound(slot.height() * ratio)));
+    canvas.setDevicePixelRatio(ratio);
+    canvas.fill(Qt::transparent);
+
+    const int width = qRound(slot.width() * scale);
+    const int height = qRound(slot.height() * scale);
+    QPainter painter(&canvas);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.drawPixmap(QRect((slot.width() - width) / 2, (slot.height() - height) / 2, width, height),
+                       icon.pixmap(slot));
+    painter.end();
+
+    tabs->setTabIcon(index, QIcon(canvas));
+}
+
+} // namespace
 
 Operate operate;
 PowerMonitor powerMonitor;
@@ -172,6 +212,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tabWidget->setTabToolTip(3, tr("Keyboard backlight on/off, mode and brightness."));
     ui->tabWidget->setTabToolTip(4, tr("Versions, project links and diagnostics."));
     ui->tabWidget->setTabToolTip(5, tr("Raw EC memory access. Hidden by default."));
+    shrinkTabIcon(ui->tabWidget, ui->batteryTab, 0.85);
     // Disable debug tab
     ui->tabWidget->setTabVisible(5, false);
     setTabsEnabled(false);
