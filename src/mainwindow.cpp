@@ -141,6 +141,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->fanSpeedResetButton, &QPushButton::clicked, this, &MainWindow::loadDefaultFanSettings);
     connect(ui->fanSpeedApplyButton, &QPushButton::clicked, this, &MainWindow::setFanSpeedSettings);
+    connect(ui->copyDiagnosticsButton, &QPushButton::clicked, this, &MainWindow::copyDiagnostics);
+    connect(ui->keyboardBrightnessSlider, &QSlider::valueChanged, this, [this](int value) {
+        ui->keyboardBrightnessValueLabel->setText(QString::number(value));
+    });
     connect(&powerMonitor, &PowerMonitor::currentChargerState, this, &MainWindow::on_ChargerStateChange);
     connect(&powerMonitor, &PowerMonitor::currentPowerProfile, this, &MainWindow::on_PowerProfileChange);
 
@@ -148,12 +152,24 @@ MainWindow::MainWindow(QWidget *parent)
 
     MainWindow::setWindowIcon(QIcon(":/images/AppIcon"));
     Settings s;
-    if (s.isValueExist("MainWindow/Width") && s.isValueExist("MainWindow/Height"))
-        MainWindow::resize(s.getValue("MainWindow/Width").toInt(), s.getValue("MainWindow/Height").toInt());
+    if (s.isValueExist("MainWindow/Width") && s.isValueExist("MainWindow/Height")) {
+        const int savedWidth = s.getValue("MainWindow/Width").toInt();
+        const int savedHeight = s.getValue("MainWindow/Height").toInt();
+        // Older builds saved a cramped 580x480 window. Keep the new design
+        // size unless the user has already resized to something roomy.
+        if (savedWidth >= 900 && savedHeight >= 700)
+            MainWindow::resize(savedWidth, savedHeight);
+    }
 
     createTrayIcon();
 
     ui->tabWidget->tabBar()->setExpanding(true);
+    ui->tabWidget->setTabToolTip(0, tr("Live system status and one-click performance profiles."));
+    ui->tabWidget->setTabToolTip(1, tr("Charge limits and automatic charger/battery profile switching."));
+    ui->tabWidget->setTabToolTip(2, tr("Custom CPU and GPU fan curves."));
+    ui->tabWidget->setTabToolTip(3, tr("Keyboard backlight on/off, mode and brightness."));
+    ui->tabWidget->setTabToolTip(4, tr("Versions, project links and diagnostics."));
+    ui->tabWidget->setTabToolTip(5, tr("Raw EC memory access. Hidden by default."));
     // Disable debug tab
     ui->tabWidget->setTabVisible(5, false);
     setTabsEnabled(false);
@@ -476,7 +492,9 @@ void MainWindow::updateKeyboardBacklightMode() {
 void MainWindow::updateKeyboardBrightness() const {
     QSignalBlocker sliderBlocker(ui->keyboardBrightnessSlider);
     QSignalBlocker checkBlocker(ui->kbdBacklightEnableCheckBox);
-    ui->keyboardBrightnessSlider->setSliderPosition(operate.getKeyboardBrightness());
+    const int brightness = operate.getKeyboardBrightness();
+    ui->keyboardBrightnessSlider->setSliderPosition(brightness);
+    ui->keyboardBrightnessValueLabel->setText(QString::number(brightness));
     if (operate.isKeyboardBacklightEnableSupport())
         ui->kbdBacklightEnableCheckBox->setChecked(operate.getKeyboardBacklightEnabled());
 }
@@ -981,14 +999,22 @@ void MainWindow::on_customBatteryApplyButton_clicked() {
 }
 
 void MainWindow::on_ReadValueButton_clicked() {
-    QString text = ui->addressEdit->displayText();
-    int value = operate.getValue(text.toInt());
-    ui->ValueSpinBox->setValue(value);
+    bool ok = false;
+    const int address = ui->addressEdit->displayText().trimmed().toInt(&ok, 0);
+    if (!ok || address < 0 || address > 255) {
+        statusBar()->showMessage(tr("Enter a valid EC address (0x00–0xFF)."), 4000);
+        return;
+    }
+    ui->ValueSpinBox->setValue(operate.getValue(address));
 }
 
 void MainWindow::on_WriteValueButton_clicked() const {
-    QString text = ui->addressEdit->displayText();
-    int address = text.toInt();
+    bool ok = false;
+    const int address = ui->addressEdit->displayText().trimmed().toInt(&ok, 0);
+    if (!ok || address < 0 || address > 255) {
+        statusBar()->showMessage(tr("Enter a valid EC address (0x00–0xFF)."), 4000);
+        return;
+    }
     operate.setValue(address, ui->ValueSpinBox->value());
 }
 
