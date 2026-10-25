@@ -317,6 +317,31 @@
                    </property>
                   </widget>
                  </item>
+                 <item row="7" column="0">
+                  <widget class="QLabel" name="gameModeLabel">
+                   <property name="text">
+                    <string>Game mode:</string>
+                   </property>
+                   <property name="toolTip">
+                    <string>Whether MCC has detected a running Steam or Lutris game.</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="7" column="1">
+                  <widget class="QLabel" name="gameModeValueLabel">
+                   <property name="font">
+                    <font>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>Inactive</string>
+                   </property>
+                   <property name="toolTip">
+                    <string>Active while a detected game is being given the High Performance profile. A game that is detected but not applied (following games is off, or it is running on battery with the battery option disabled) is shown as detected only.</string>
+                   </property>
+                  </widget>
+                 </item>
                 </layout>
                </widget>
               </item>

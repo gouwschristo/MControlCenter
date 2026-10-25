@@ -102,6 +102,7 @@ private:
     void restoreGameMode();
     [[nodiscard]] bool gameModeAllowedNow() const;
     void applyAcDcProfile();
+    void updateGameStatusLabel();
 
     void showEvent(QShowEvent *event);
     void closeEvent(QCloseEvent *event);

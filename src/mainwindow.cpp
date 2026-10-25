@@ -163,6 +163,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     createTrayIcon();
+    updateGameStatusLabel();
 
     ui->tabWidget->tabBar()->setExpanding(true);
     ui->tabWidget->setTabToolTip(0, tr("Live system status and one-click performance profiles."));
@@ -954,6 +955,8 @@ void MainWindow::on_ChargerStateChange(bool isCharging) {
     } else {
         ui->autoPPDCheckBox->setEnabled(1);
     }
+
+    updateGameStatusLabel();
 }
 
 void MainWindow::on_PowerProfileChange(const PowerProfile profile) {
@@ -984,6 +987,7 @@ void MainWindow::onGameStateChanged(bool active, const QString &description) {
     } else {
         restoreGameMode();
     }
+    updateGameStatusLabel();
 }
 
 void MainWindow::applyGameMode(const QString &description) {
@@ -1006,6 +1010,7 @@ void MainWindow::applyGameMode(const QString &description) {
         gameModeManualEc = false;
         gameModeActive = true;
         statusBar()->showMessage(tr("Game mode: High Performance"), 3000);
+        updateGameStatusLabel();
         return;
     }
 
@@ -1033,6 +1038,8 @@ void MainWindow::applyGameMode(const QString &description) {
         statusBar()->showMessage(tr("Game mode: High Performance"), 3000);
     else
         statusBar()->showMessage(tr("Game mode: High Performance was only partially applied"), 4000);
+
+    updateGameStatusLabel();
 }
 
 void MainWindow::restoreGameMode() {
@@ -1071,11 +1078,25 @@ void MainWindow::restoreGameMode() {
 
     gameModeActive = false;
     gameModeManualEc = false;
+    updateGameStatusLabel();
 }
 
 bool MainWindow::gameModeAllowedNow() const {
     return ui->autoGameModeCheckBox->isChecked() &&
            (ui->gameModeOnBatteryCheckBox->isChecked() || chargerConnected);
+}
+
+void MainWindow::updateGameStatusLabel() {
+    if (!gameMonitor.isGameActive()) {
+        ui->gameModeValueLabel->setText(tr("Inactive"));
+        return;
+    }
+
+    const QString description = gameMonitor.gameDescription();
+    if (gameModeActive)
+        ui->gameModeValueLabel->setText(tr("Active — %1").arg(description));
+    else
+        ui->gameModeValueLabel->setText(tr("Detected — %1, not applied").arg(description));
 }
 
 void MainWindow::applyAcDcProfile() {
