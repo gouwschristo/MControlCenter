@@ -371,6 +371,22 @@
                   </widget>
                  </item>
                  <item>
+                  <widget class="QCheckBox" name="gameModeOnBatteryCheckBox">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="text">
+                    <string>Game mode on battery too</string>
+                   </property>
+                   <property name="toolTip">
+                    <string>When enabled, a running game forces High Performance even on battery. When disabled, a game only overrides the profile while the charger is connected; on battery the AC/DC or manual profile is kept.</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QWidget" name="modeFormWidget" native="true">
                    <layout class="QGridLayout" name="modeFormLayout">
                     <property name="leftMargin">

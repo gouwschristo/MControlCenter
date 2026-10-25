@@ -100,6 +100,8 @@ private:
 
     void applyGameMode(const QString &description);
     void restoreGameMode();
+    [[nodiscard]] bool gameModeAllowedNow() const;
+    void applyAcDcProfile();
 
     void showEvent(QShowEvent *event);
     void closeEvent(QCloseEvent *event);
@@ -123,6 +125,7 @@ private:
     GameMonitor gameMonitor;
     bool gameModeActive = false;
     bool gameModeManualEc = false;
+    bool chargerConnected = true;
     uint gameModePpdCookie = 0;
     QString savedShiftMode;
     QString savedFanMode;
@@ -183,6 +186,7 @@ private slots:
     void on_autoPPDCheckBox_toggled(bool checked);
     void on_autoAcDcProfilesGroupBox_toggled(bool active);
     void on_autoGameModeCheckBox_toggled(bool checked);
+    void on_gameModeOnBatteryCheckBox_toggled(bool checked);
     void onGameStateChanged(bool active, const QString &description);
 
     void on_highPerformanceModeRadioButton_toggled(bool checked);

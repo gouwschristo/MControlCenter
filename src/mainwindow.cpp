@@ -202,6 +202,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->userModeOnBatteryComboBox->setCurrentIndex(s.getValue("Settings/UserModeOnBattery").toInt());
     ui->userModeOnChargerComboBox->setCurrentIndex(s.getValue("Settings/UserModeOnCharger").toInt());
     ui->autoPPDCheckBox->setChecked(s.getValue("Settings/autoPPDstate").toBool());
+    if (s.isValueExist("Settings/gameModeOnBatteryState"))
+        ui->gameModeOnBatteryCheckBox->setChecked(s.getValue("Settings/gameModeOnBatteryState").toBool());
     ui->autoGameModeCheckBox->setChecked(s.getValue("Settings/autoGameModeState").toBool());
 
     // Label the vendor USB power-share profiles.
@@ -929,19 +931,26 @@ void MainWindow::setModeFromSelection(PowerProfile profile) {
 }
 
 void MainWindow::on_ChargerStateChange(bool isCharging) {
+    chargerConnected = isCharging;
+
+    const bool gameRunning = ui->autoGameModeCheckBox->isChecked() && gameMonitor.isGameActive();
+    const bool wantGameOverlay = gameRunning && gameModeAllowedNow();
+
+    if (wantGameOverlay) {
+        if (!gameModeActive)
+            applyGameMode(gameMonitor.gameDescription());
+        return;
+    }
+
+    const bool hadOverlay = gameModeActive;
+    if (hadOverlay)
+        restoreGameMode();
+
     if (ui->autoAcDcProfilesGroupBox->isChecked()) {
-        Settings s;
-        int SelectedModeOnBattery = s.getValue("Settings/UserModeOnBattery").toInt();
-        int SelectedModeOnCharger = s.getValue("Settings/UserModeOnCharger").toInt();
-
-        PowerProfile batteryProfile = static_cast<PowerProfile>(SelectedModeOnBattery);
-        PowerProfile chargerProfile = static_cast<PowerProfile>(SelectedModeOnCharger);
-
-        if (isCharging) {
-            setModeFromSelection(chargerProfile);
-        } else {
-            setModeFromSelection(batteryProfile);
-        }
+        // restoreGameMode() already applied the AC/DC base if an overlay was
+        // active; otherwise apply the base for this charger state now.
+        if (!hadOverlay)
+            applyAcDcProfile();
     } else {
         ui->autoPPDCheckBox->setEnabled(1);
     }
@@ -970,7 +979,7 @@ void MainWindow::on_PowerProfileChange(const PowerProfile profile) {
 
 void MainWindow::onGameStateChanged(bool active, const QString &description) {
     if (active) {
-        if (ui->autoGameModeCheckBox->isChecked())
+        if (gameModeAllowedNow())
             applyGameMode(description);
     } else {
         restoreGameMode();
@@ -978,7 +987,7 @@ void MainWindow::onGameStateChanged(bool active, const QString &description) {
 }
 
 void MainWindow::applyGameMode(const QString &description) {
-    if (gameModeActive)
+    if (gameModeActive || !gameModeAllowedNow())
         return;
 
     (void)operate.updateEcData();
@@ -1037,7 +1046,11 @@ void MainWindow::restoreGameMode() {
         powerMonitor.queryPowerProfile();
     }
 
-    if (gameModeManualEc) {
+    if (ui->autoAcDcProfilesGroupBox->isChecked()) {
+        // AC/DC is the base owner while the game overlay is inactive. Apply
+        // the profile for the charger state at this moment.
+        applyAcDcProfile();
+    } else if (gameModeManualEc) {
         (void)operate.updateEcData();
 
         bool ok = operate.setShiftModeByName(savedShiftMode);
@@ -1058,6 +1071,21 @@ void MainWindow::restoreGameMode() {
 
     gameModeActive = false;
     gameModeManualEc = false;
+}
+
+bool MainWindow::gameModeAllowedNow() const {
+    return ui->autoGameModeCheckBox->isChecked() &&
+           (ui->gameModeOnBatteryCheckBox->isChecked() || chargerConnected);
+}
+
+void MainWindow::applyAcDcProfile() {
+    if (!ui->autoAcDcProfilesGroupBox->isChecked())
+        return;
+
+    Settings s;
+    const int battery = s.getValue("Settings/UserModeOnBattery").toInt();
+    const int charger = s.getValue("Settings/UserModeOnCharger").toInt();
+    setModeFromSelection(static_cast<PowerProfile>(chargerConnected ? charger : battery));
 }
 
 void MainWindow::on_bestMobilityRadioButton_toggled(bool checked) {
@@ -1206,19 +1234,16 @@ void MainWindow::on_autoAcDcProfilesGroupBox_toggled(bool checked) {
             return;
         }
 
-        // Game following and charger-based switching both own the preset.
-        if (ui->autoGameModeCheckBox->isChecked())
-            ui->autoGameModeCheckBox->setChecked(false);
-        ui->autoGameModeCheckBox->setEnabled(false);
-
+        // Game following and charger-based switching are layered: the game
+        // overlay wins while it is active, then the AC/DC base is reapplied.
         powerMonitor.disconnectFromPowerProfiles();
         ui->autoPPDCheckBox->setChecked(0);
         ui->autoPPDCheckBox->setEnabled(0);
         powerMonitor.queryChargerState();
     } else {
         ui->autoPPDCheckBox->setEnabled(1);
-        ui->autoGameModeCheckBox->setEnabled(true);
-        powerMonitor.disconnectFromUpower();
+        if (!ui->autoGameModeCheckBox->isChecked())
+            powerMonitor.disconnectFromUpower();
     }
 
     Settings::setValue("Settings/autoAcDcProfilesState", checked);
@@ -1260,17 +1285,34 @@ void MainWindow::on_autoPPDCheckBox_toggled(bool checked) {
 
 void MainWindow::on_autoGameModeCheckBox_toggled(bool checked) {
     if (checked) {
-        if (ui->autoAcDcProfilesGroupBox->isChecked())
-            ui->autoAcDcProfilesGroupBox->setChecked(false);
-        ui->autoAcDcProfilesGroupBox->setEnabled(false);
+        if (!powerMonitor.connectToUpower()) {
+            statusBar()->showMessage(tr("Could not connect to UPower; assuming AC power for game mode."), 4000);
+            chargerConnected = true;
+        } else {
+            powerMonitor.queryChargerState();
+        }
+        ui->gameModeOnBatteryCheckBox->setEnabled(true);
         gameMonitor.start();
     } else {
         gameMonitor.stop();
         restoreGameMode();
-        if (!ui->autoPPDCheckBox->isChecked())
-            ui->autoAcDcProfilesGroupBox->setEnabled(true);
+        ui->gameModeOnBatteryCheckBox->setEnabled(false);
+        if (!ui->autoAcDcProfilesGroupBox->isChecked())
+            powerMonitor.disconnectFromUpower();
     }
     Settings::setValue("Settings/autoGameModeState", checked);
+}
+
+void MainWindow::on_gameModeOnBatteryCheckBox_toggled(bool checked) {
+    Settings::setValue("Settings/gameModeOnBatteryState", checked);
+
+    if (!ui->autoGameModeCheckBox->isChecked() || !gameMonitor.isGameActive())
+        return;
+
+    if (gameModeAllowedNow() && !gameModeActive)
+        applyGameMode(gameMonitor.gameDescription());
+    else if (!gameModeAllowedNow() && gameModeActive)
+        restoreGameMode();
 }
 
 void MainWindow::on_highPerformanceModeRadioButton_toggled(bool checked) {
