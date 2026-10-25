@@ -610,6 +610,10 @@ bool Operate::setUserMode(user_mode userMode) const {
     if (msiEcHelper.hasSuperBattery())
         ok &= msiEcHelper.setSuperBattery(superBattery);
 
+    // A preset uses the EC fan mode, not the custom curve.
+    if (ok && msiEcHelper.hasFanCurve())
+        ok &= setFanModeAdvanced(false);
+
     if (ok)
         Settings::setValue(settingsGroup + "UserMode", userModeStr);
     return ok;
@@ -709,11 +713,16 @@ bool Operate::setFanMode(int value) const {
 }
 
 bool Operate::setFanModeAdvanced(bool enabled) const {
-    if (msiEcHelper.hasFanCurve())
-        return setFanCurveActive(enabled);
-    helper.putValue(fanModeAddress, enabled ? fanModeAdvanced : fanModeAuto);
-    Settings::setValue(settingsGroup + "fanModeAdvanced", enabled);
-    return true;
+    bool ok;
+    if (msiEcHelper.hasFanCurve()) {
+        ok = setFanCurveActive(enabled);
+    } else {
+        helper.putValue(fanModeAddress, enabled ? fanModeAdvanced : fanModeAuto);
+        ok = true;
+    }
+    if (ok)
+        Settings::setValue(settingsGroup + "fanModeAdvanced", enabled);
+    return ok;
 }
 
 bool Operate::setFanCurveActive(bool active) const {
@@ -723,8 +732,15 @@ bool Operate::setFanCurveActive(bool active) const {
 }
 
 bool Operate::setFanModeByName(const QString &name) const {
-    if (msiEcHelper.hasFanMode())
-        return msiEcHelper.setFanModeName(name);
+    if (msiEcHelper.hasFanMode()) {
+        const bool ok = msiEcHelper.setFanModeName(name);
+        // Keep the saved curve state in sync with the EC. "basic" and the
+        // user curve share the same activation bit, so read it back.
+        if (ok && msiEcHelper.hasFanCurve())
+            Settings::setValue(settingsGroup + "fanModeAdvanced",
+                               msiEcHelper.getFanCurveActive());
+        return ok;
+    }
 
     int value;
     if (name == "auto")
@@ -821,6 +837,12 @@ bool Operate::isWebCamBlockSupport() const {
 void Operate::loadSettings() const {
     Settings s;
 
+    // Capture this before applying a preset: setUserMode() clears the curve
+    // and would otherwise overwrite the saved state we are about to restore.
+    const bool hasFanAdvanced = s.isValueExist(settingsGroup + "fanModeAdvanced");
+    const bool fanAdvanced = hasFanAdvanced &&
+                             s.getValue(settingsGroup + "fanModeAdvanced").toBool();
+
     if (getUserMode() != user_mode::unknown_mode && s.isValueExist(settingsGroup + "UserMode")) {
         QString value = s.getValue(settingsGroup + "UserMode").toString();
         if (value == "balanced_mode")
@@ -852,8 +874,8 @@ void Operate::loadSettings() const {
         setFan1TempSettings(s.getValueVector(settingsGroup + "fan1TempSettings"));
     if (s.isValueExist(settingsGroup + "fan2TempSettings"))
         setFan2TempSettings(s.getValueVector(settingsGroup + "fan2TempSettings"));
-    if (s.isValueExist(settingsGroup + "fanModeAdvanced"))
-        setFanModeAdvanced(s.getValue(settingsGroup + "fanModeAdvanced").toBool());
+    if (hasFanAdvanced)
+        setFanModeAdvanced(fanAdvanced);
 }
 
 void Operate::handleWakeEvent() const {
