@@ -758,7 +758,7 @@
       </widget>
       <widget class="QWidget" name="batteryTab">
        <attribute name="icon">
-        <iconset theme="battery"/>
+        <iconset theme="battery-full-symbolic"/>
        </attribute>
        <attribute name="title">
         <string>Battery</string>
