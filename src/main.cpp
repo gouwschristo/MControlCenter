@@ -47,7 +47,11 @@ int main(int argc, char *argv[]) {
     }
 
     MainWindow w;
-    w.show();
+    // Autostart entries pass --minimized so the window stays in the tray until
+    // it is clicked; an explicit launch still opens it.
+    const QStringList arguments = QCoreApplication::arguments();
+    if (!arguments.contains("--minimized") && !arguments.contains("--tray"))
+        w.show();
 
     return QApplication::exec();
 }

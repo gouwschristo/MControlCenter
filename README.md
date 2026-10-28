@@ -179,6 +179,8 @@ Else, you can execute this command in the terminal:
 
 `cp /usr/share/applications/mcontrolcenter.desktop ~/.config/autostart/mcontrolcenter.desktop`
 
+Add `--minimized` to the `Exec=` line of that copy (for example `Exec=mcontrolcenter --minimized`) so a session-start launch stays in the system tray instead of opening the window; starting it yourself still opens the window normally.
+
 ## Localization
 
 You can help translate the MControlCenter app into your native language
